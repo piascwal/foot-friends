@@ -1,11 +1,11 @@
-/* Les frappes : tir, coup de poing, super tir. Chaque frappe a une zone devant le joueur, active pendant
+/* Les frappes : tir et frappe puissante, coup de poing léger et puissant, super tir. Chaque frappe a une zone devant le joueur, active pendant
    une courte fenêtre : le ballon qui s'y trouve part dans la direction du geste, et l'adversaire touché
    est sonné un instant. */
 import { capSpeed } from './ball';
 import { BALL_R, POWER_PER_TOUCH } from './constants';
 import { canAct } from './player';
 import { distanceToPlayer } from './geometry';
-import type { Ball, GameEvent, Input, Player, StrikeKind } from './types';
+import { STRIKE_KINDS, type Ball, type GameEvent, type Input, type Player, type StrikeKind } from './types';
 
 interface StrikeSpec {
   /** Durée du geste, et fenêtre où il frappe. */
@@ -53,6 +53,33 @@ export const STRIKES: Record<StrikeKind, { ground: StrikeSpec; air: StrikeSpec }
       knock: 180,
     },
   },
+  kickHeavy: {
+    // frappe tendue au ras du sol, reprise de volée plongeante : plus lente à armer, bien plus forte
+    ground: {
+      duration: 0.44,
+      from: 0.12,
+      to: 0.24,
+      zx: 38,
+      zy: -30,
+      r: 38,
+      vx: 840,
+      vy: -260,
+      stun: 1,
+      knock: 300,
+    },
+    air: {
+      duration: 0.4,
+      from: 0.08,
+      to: 0.22,
+      zx: 38,
+      zy: -55,
+      r: 40,
+      vx: 900,
+      vy: 140,
+      stun: 1,
+      knock: 300,
+    },
+  },
   punch: {
     // poing tendu au sol, smash vers le bas en l'air
     ground: {
@@ -78,6 +105,33 @@ export const STRIKES: Record<StrikeKind, { ground: StrikeSpec; air: StrikeSpec }
       vy: 420,
       stun: 0.9,
       knock: 230,
+    },
+  },
+  punchHeavy: {
+    // gros direct qui sonne longtemps, smash écrasant en l'air
+    ground: {
+      duration: 0.42,
+      from: 0.1,
+      to: 0.22,
+      zx: 40,
+      zy: -100,
+      r: 36,
+      vx: 760,
+      vy: -320,
+      stun: 1.4,
+      knock: 380,
+    },
+    air: {
+      duration: 0.42,
+      from: 0.08,
+      to: 0.2,
+      zx: 36,
+      zy: -90,
+      r: 40,
+      vx: 650,
+      vy: 700,
+      stun: 1.4,
+      knock: 380,
     },
   },
   super: {
@@ -120,11 +174,7 @@ export const strikeZone = (p: Player, spec: StrikeSpec): { x: number; y: number 
 /** Commence un geste sur l'appui d'une touche (le super tir demande une jauge pleine). */
 export function startStrike(p: Player, input: Input): void {
   if (!canAct(p) || p.strike) return;
-  const pressed = (key: 'kick' | 'punch' | 'super') => input[key] && !p.prev[key];
-  let kind: StrikeKind | null = null;
-  if (pressed('super') && p.power >= 1) kind = 'super';
-  else if (pressed('kick')) kind = 'kick';
-  else if (pressed('punch')) kind = 'punch';
+  const kind = STRIKE_KINDS.find((k) => input[k] && !p.prev[k] && (k !== 'super' || p.power >= 1)) ?? null;
   if (!kind) return;
   if (kind === 'super') p.power = 0;
   p.strike = { kind, t: 0, air: !p.onGround, hitBall: false, hitFoe: false };
@@ -156,7 +206,8 @@ export function stepStrike(p: Player, foe: Player, ball: Ball, dt: number, event
   if (!s.hitFoe && foe.stun <= 0 && distanceToPlayer(foe, zone.x, zone.y) < spec.r * 0.7) {
     s.hitFoe = true;
     stunPlayer(foe, spec.stun, p.facing * spec.knock, events);
-    events.push({ type: s.kind === 'super' ? 'super' : 'punch', x: zone.x, y: zone.y });
+    const heavy = s.kind === 'super' ? 'super' : s.kind.endsWith('Heavy') ? 'punchHeavy' : 'punch';
+    events.push({ type: heavy, x: zone.x, y: zone.y });
   }
 }
 

@@ -7,11 +7,13 @@
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#0b0d1f" />
-    <link
-      rel="icon"
-      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='7' fill='white' stroke='black'/><circle cx='8' cy='8' r='2.5'/></svg>"
-    />
+    <meta name="theme-color" content="#1aa7ff" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Foot Friends" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="icon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
@@ -19,20 +21,17 @@
   <body>
     <canvas id="cv"></canvas>
 
-    <!-- commandes tactiles du joueur 1 (affichées sur écran tactile, pendant le match) -->
+    <!-- commandes tactiles du joueur 1 : joystick à gauche, boutons en losange à droite (src/input/touch.ts) -->
     <div id="touch">
-      <div class="pad left">
-        <div class="tbtn" data-action="left">◀</div>
-        <div class="tbtn" data-action="right">▶</div>
-      </div>
-      <div class="pad right">
-        <div class="tbtn" data-action="punch">POING</div>
-        <div class="tbtn" data-action="kick">TIR</div>
-        <div class="tbtn" data-action="super">SUPER</div>
-        <div class="tbtn big" data-action="jump">SAUT</div>
-      </div>
+      <div id="stick"><div id="knob"></div></div>
+      <div class="btn p" data-b="punch">A<small>poing</small></div>
+      <div class="btn p h" data-b="punchHeavy">B<small>POING</small></div>
+      <div class="btn k" data-b="kick">C<small>pied</small></div>
+      <div class="btn k h" data-b="kickHeavy">D<small>PIED</small></div>
+      <div class="btn s" data-b="super">★<small>SUPER</small></div>
     </div>
     <button id="pauseBtn" aria-label="Pause">II</button>
+    <button id="fsBtn" aria-label="Plein écran" title="Plein écran">⛶</button>
     <!-- le jeu se joue à l'horizontale : à la verticale, ce message recouvre tout -->
     <div id="rotate">
       <p>Tourne ton téléphone<br />à l'horizontale</p>

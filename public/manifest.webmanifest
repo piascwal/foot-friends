@@ -1,0 +1,11 @@
+{
+  "name": "Foot Friends",
+  "short_name": "Foot Friends",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#1aa7ff",
+  "theme_color": "#1aa7ff",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

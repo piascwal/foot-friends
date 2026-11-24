@@ -38,3 +38,16 @@ describe('ballon', () => {
     expect(ball.vx).toBeLessThan(0);
   });
 });
+
+describe('ballon contre un joueur', () => {
+  it('écrasé au sol par un joueur, le ballon ne passe jamais sous la pelouse', async () => {
+    const { newMatch } = await import('../src/engine/match');
+    const { ballOnPlayer } = await import('../src/engine/contact');
+    const m = newMatch();
+    const [p] = m.players;
+    Object.assign(m.ball, { x: p.x + 20, y: GROUND - 5, vx: 0, vy: 900 });
+    ballOnPlayer(m.ball, p, []);
+    expect(m.ball.y).toBeLessThanOrEqual(GROUND - BALL_R);
+    expect(m.ball.vy).toBeLessThanOrEqual(0);
+  });
+});

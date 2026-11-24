@@ -8,8 +8,12 @@ export interface Input {
   left: boolean;
   right: boolean;
   jump: boolean;
+  /** Tir (pied léger) et frappe puissante (pied lourd). */
   kick: boolean;
+  kickHeavy: boolean;
+  /** Coup de poing léger et puissant. */
   punch: boolean;
+  punchHeavy: boolean;
   super: boolean;
 }
 
@@ -18,11 +22,16 @@ export const NO_INPUT: Input = {
   right: false,
   jump: false,
   kick: false,
+  kickHeavy: false,
   punch: false,
+  punchHeavy: false,
   super: false,
 };
 
-export type StrikeKind = 'kick' | 'punch' | 'super';
+export type StrikeKind = 'kick' | 'kickHeavy' | 'punch' | 'punchHeavy' | 'super';
+
+/** Les frappes qui se déclenchent sur l'appui d'une touche, de la plus forte à la plus faible. */
+export const STRIKE_KINDS: readonly StrikeKind[] = ['super', 'kickHeavy', 'punchHeavy', 'kick', 'punch'];
 
 export interface Strike {
   kind: StrikeKind;
@@ -71,7 +80,7 @@ export type Phase = 'kickoff' | 'play' | 'goal' | 'end';
 
 /** Ce qui s'est passé pendant une image : sons, effets. */
 export type GameEvent =
-  | { type: 'kick' | 'punch' | 'super' | 'bounce' | 'post' | 'whistle'; x: number; y: number }
+  | { type: StrikeKind | 'bounce' | 'post' | 'whistle'; x: number; y: number }
   | { type: 'goal'; side: Side }
   | { type: 'stun'; side: Side }
   | { type: 'end'; winner: Side | null };

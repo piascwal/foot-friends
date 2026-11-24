@@ -43,8 +43,11 @@ export class Effects {
   /** Réagit aux événements d'une image du match. */
   onEvents(events: readonly GameEvent[]): void {
     for (const e of events) {
-      if (e.type === 'kick' || e.type === 'punch') this.burst(e.x, e.y, 8, ['#fff', '#ffe066'], 220);
-      else if (e.type === 'super') {
+      if (e.type === 'kick' || e.type === 'punch') this.burst(e.x, e.y, 8, ['#fff', '#ffe600'], 220);
+      else if (e.type === 'kickHeavy' || e.type === 'punchHeavy') {
+        this.burst(e.x, e.y, 16, ['#fff', '#00d9ff', '#ff2e88'], 320);
+        this.shake = Math.max(this.shake, 0.15);
+      } else if (e.type === 'super') {
         this.burst(e.x, e.y, 22, ['#ff6b35', '#ffd23f', '#fff'], 380);
         this.shake = Math.max(this.shake, 0.25);
       } else if (e.type === 'bounce') this.burst(e.x, e.y + 12, 4, ['#cfe8c0', '#8fbf7f'], 80);
@@ -54,7 +57,7 @@ export class Effects {
       } else if (e.type === 'stun') this.flash[e.side] = 0.18;
       else if (e.type === 'goal') {
         const x = e.side === 0 ? W - 60 : 60;
-        this.burst(x, 360, 60, ['#ef476f', '#ffd166', '#06d6a0', '#118ab2', '#fff'], 520, 300);
+        this.burst(x, 360, 60, ['#ff2e88', '#ffe600', '#00d9ff', '#7bff00', '#fff'], 520, 300);
         this.shake = 0.45;
       }
     }

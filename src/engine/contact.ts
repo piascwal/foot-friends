@@ -1,7 +1,7 @@
 /* Le ballon contre le corps d'un joueur : il rebondit sur lui (tête, torse, jambes), en prenant une
    partie de sa vitesse. Un super tir renverse l'adversaire qu'il percute et continue sa course. */
 import { capSpeed } from './ball';
-import { BALL_R, PLAYER_R } from './constants';
+import { BALL_BOUNCE, BALL_R, GROUND, PLAYER_R } from './constants';
 import { closestOnPlayer } from './geometry';
 import { stunPlayer } from './strikes';
 import type { Ball, GameEvent, Player } from './types';
@@ -42,5 +42,10 @@ export function ballOnPlayer(b: Ball, p: Player, events: GameEvent[]): void {
       b.vx += p.facing * 90;
     }
     capSpeed(b);
+  }
+  // coincé entre le joueur et la pelouse : le ballon ne s'enfonce pas, il rebondit
+  if (b.y > GROUND - BALL_R) {
+    b.y = GROUND - BALL_R;
+    if (b.vy > 0) b.vy = -b.vy * BALL_BOUNCE;
   }
 }

@@ -11,14 +11,22 @@ Jouer : **https://piascwal.github.io/foot-friends/**
 - Matchs de 60, 90 ou 120 secondes ; en cas d'égalité, **but en or**.
 - Clavier, manettes et écran tactile (à l'horizontale).
 
-|                                | Joueur 1  | Joueur 2         |
-| ------------------------------ | --------- | ---------------- |
-| Courir                         | Q / D     | ← / →            |
-| Sauter (tête)                  | Z         | ↑                |
-| Tir (volée en l'air)           | F         | K (ou 1 du pavé) |
-| Coup de poing (smash en l'air) | G         | L (ou 2)         |
-| Super tir (jauge pleine)       | H         | M (ou 3)         |
-| Pause                          | Échap / P |                  |
+|                          | Seul           | Joueur 1 (à deux) | Joueur 2 (à deux)     |
+| ------------------------ | -------------- | ----------------- | --------------------- |
+| Courir                   | Q / D ou ← / → | Q / D             | ← / →                 |
+| Sauter (tête)            | Z ou ↑         | Z                 | ↑                     |
+| Poing / POING            | U / I          | F / G             | O / P (4 / 5 du pavé) |
+| Pied / PIED              | J / K          | V / B             | L / M (1 / 2)         |
+| Super tir (jauge pleine) | L ou Espace    | H                 | Ù (3)                 |
+| Pause                    | Échap          |                   |                       |
+
+- **Tactile** : joystick à gauche (vers le haut pour sauter), boutons en losange à droite comme dans
+  Fighting Friends (poing, POING, pied, PIED) et bouton du super tir, qui s'allume quand la jauge est pleine.
+- **Manettes** : stick ou croix, A/B pied/PIED, X/Y poing/POING, RB super tir.
+- **Plein écran** : bouton ⛶ (automatique sur téléphone au lancement d'une partie) ; sur iPhone, « Ajouter à
+  l'écran d'accueil » ouvre le jeu en plein écran. Le stade remplit tout l'écran, quelle que soit sa forme.
+
+Les coups puissants (POING, PIED) sont plus lents à armer mais partent plus fort et sonnent plus longtemps.
 
 ## Les sprites viennent de la banque
 
@@ -28,7 +36,7 @@ Les images des personnages ne sont **pas** dans ce dépôt : elles viennent de l
 - `sprites.json` fixe la version : `v2` = la plus récente des `v2.x`, `v2.4` = cette version exacte.
 - `npm run sprites` télécharge cette version de la banque et lance son script de copie : seules les poses
   demandées par le jeu sont copiées dans `public/assets/characters/` (non versionné).
-- Les poses demandées sont dans `src/data/poses.ts` (garde, portrait, course, saut, tir, super tir, poing,
+- Les poses demandées sont dans `src/data/poses.ts` (garde, portrait, course, saut, pied et poing légers et puissants,
   volée, smash, sonné, victoire). Le jeu les publie dans la banque :
   `npm run needs -- ../sprite-bank/games/foot-friends.json`. L'atelier de la banque montre alors, pour chaque
   personnage, ce qui manque à Foot Friends.

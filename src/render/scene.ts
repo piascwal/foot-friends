@@ -4,8 +4,8 @@ import type { PoseKey } from '../data/poses';
 import { BALL_R, GROUND, H, PLAYER_H, PLAYER_R, W } from '../engine/constants';
 import type { Match, Player } from '../engine/types';
 import type { Effects } from './effects';
-import { drawHud, type HudInfo } from './hud';
-import { ballSprite, drawGoalBack, drawGoalFront, stadium } from './pitch';
+import { drawHud, type HudInfo, type View } from './hud';
+import { ballSprite, drawBackdrop, drawGoalBack, drawGoalFront } from './pitch';
 import { drawSprite } from './sprite-draw';
 
 /** Hauteur à l'écran d'un personnage debout. */
@@ -20,9 +20,11 @@ export function poseOf(m: Match, p: Player): PoseKey {
   }
   if (p.stun > 0) return 'hit';
   if (p.strike) {
-    if (p.strike.kind === 'super') return 'kick_heavy';
-    if (p.strike.kind === 'kick') return p.strike.air ? 'jump_kick' : 'kick_light';
-    return p.strike.air ? 'jump_punch' : 'punch_light';
+    const { kind, air } = p.strike;
+    if (kind === 'kick') return air ? 'jump_kick' : 'kick_light';
+    if (kind === 'punch') return air ? 'jump_punch' : 'punch_light';
+    if (kind === 'punchHeavy') return air ? 'jump_punch' : 'punch_heavy';
+    return air ? 'jump_kick' : 'kick_heavy';
   }
   if (!p.onGround) return 'jump';
   if (Math.abs(p.vx) > 10) return Math.floor(p.stride / 46) % 2 ? 'walk2' : 'walk1';
@@ -57,18 +59,23 @@ function drawPlayer(
     ctx.fillStyle = char.color;
     ctx.fillRect(p.x - PLAYER_R, p.y - PLAYER_H, PLAYER_R * 2, PLAYER_H);
   }
-  // repère au-dessus de la tête : couleur du personnage et nom du joueur
-  const top = p.y - SPRITE_HEIGHT * char.size - 18;
-  ctx.fillStyle = char.color;
+  // repère au-dessus de la tête : étiquette à la couleur du personnage
+  const top = p.y - SPRITE_HEIGHT * char.size - 14;
+  ctx.font = '10px "Press Start 2P", monospace';
+  ctx.textAlign = 'center';
+  const w = ctx.measureText(label).width + 10;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(p.x - w / 2 - 2, top - 18, w + 4, 18);
   ctx.beginPath();
   ctx.moveTo(p.x - 7, top);
   ctx.lineTo(p.x + 7, top);
   ctx.lineTo(p.x, top + 8);
   ctx.fill();
-  ctx.font = '10px "Press Start 2P", monospace';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#000';
-  ctx.fillText(label, p.x + 1, top - 3);
+  ctx.fillStyle = char.color;
+  ctx.fillRect(p.x - w / 2, top - 16, w, 14);
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#000';
+  ctx.strokeText(label, p.x, top - 4);
   ctx.fillStyle = '#fff';
   ctx.fillText(label, p.x, top - 4);
 }
@@ -95,24 +102,40 @@ function drawBall(ctx: CanvasRenderingContext2D, m: Match): void {
 }
 
 /** Texte centré au milieu de l'écran (BUT !, coup d'envoi…). */
-function banner(ctx: CanvasRenderingContext2D, text: string, sub = '', color = '#ffd166'): void {
+function banner(ctx: CanvasRenderingContext2D, text: string, sub = '', color = '#ffe600'): void {
+  const y = H * 0.4;
+  const pulse = 1 + Math.sin(performance.now() / 90) * 0.04;
+  ctx.save();
+  ctx.translate(W / 2, y);
+  ctx.scale(pulse, pulse);
   ctx.textAlign = 'center';
-  ctx.font = '48px "Press Start 2P", monospace';
-  ctx.fillStyle = '#000';
-  ctx.fillText(text, W / 2 + 4, H * 0.42 + 4);
+  ctx.font = '56px "Press Start 2P", monospace';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 14;
+  ctx.strokeStyle = '#000';
+  ctx.strokeText(text, 0, 0);
+  ctx.fillStyle = '#ff2e88';
+  ctx.fillText(text, 4, 4);
   ctx.fillStyle = color;
-  ctx.fillText(text, W / 2, H * 0.42);
+  ctx.fillText(text, 0, 0);
+  ctx.restore();
   if (sub) {
     ctx.font = '16px "Press Start 2P", monospace';
+    ctx.textAlign = 'center';
+    const w = ctx.measureText(sub).width + 28;
     ctx.fillStyle = '#000';
-    ctx.fillText(sub, W / 2 + 2, H * 0.42 + 42);
+    ctx.fillRect(W / 2 - w / 2 - 3, y + 26, w + 6, 34);
+    ctx.fillStyle = '#ff2e88';
+    ctx.fillRect(W / 2 - w / 2, y + 29, w, 28);
     ctx.fillStyle = '#fff';
-    ctx.fillText(sub, W / 2, H * 0.42 + 40);
+    ctx.fillText(sub, W / 2, y + 51);
   }
 }
 
 export interface SceneInfo extends HudInfo {
   labels: [string, string];
+  /** Zone visible en coordonnées du terrain. */
+  view: View;
 }
 
 export function drawScene(ctx: CanvasRenderingContext2D, m: Match, fx: Effects, info: SceneInfo): void {
@@ -120,7 +143,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, m: Match, fx: Effects, 
   ctx.save();
   ctx.translate(shake.x, shake.y);
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(stadium(), 0, 0, W, H);
+  drawBackdrop(ctx, info.view);
   drawGoalBack(ctx, 0);
   drawGoalBack(ctx, 1);
   for (const p of m.players) drawPlayer(ctx, m, p, info.chars[p.side], fx, info.labels[p.side]);
@@ -130,9 +153,10 @@ export function drawScene(ctx: CanvasRenderingContext2D, m: Match, fx: Effects, 
   fx.draw(ctx);
   ctx.restore();
 
-  drawHud(ctx, m, info);
+  drawHud(ctx, m, info, info.view);
   if (m.phase === 'goal') banner(ctx, 'BUT !', `${info.chars[m.lastScorer ?? 0].name} marque`);
-  else if (m.phase === 'kickoff' && m.phaseT < 1) banner(ctx, m.golden ? 'BUT EN OR' : 'PRÊTS ?', '', '#fff');
+  else if (m.phase === 'kickoff' && m.phaseT < 1)
+    banner(ctx, m.golden ? 'BUT EN OR' : 'PRÊTS ?', '', '#ffffff');
   else if (m.phase === 'play' && m.golden && m.phaseT < 1.2)
     banner(ctx, 'BUT EN OR', 'le prochain but gagne');
 }

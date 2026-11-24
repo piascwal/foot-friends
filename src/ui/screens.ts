@@ -2,6 +2,7 @@
 import { ensureSprites, type Character } from '../assets/characters';
 import { unlockAudio } from '../audio/sfx';
 import { CPU_LEVELS, type CpuLevel } from '../engine/ai';
+import { KEY_HELP } from '../input/controls';
 import { drawPortrait } from '../render/sprite-draw';
 
 export interface Settings {
@@ -41,16 +42,22 @@ export function hideScreens(): void {
   ui().replaceChildren();
 }
 
-function show(...children: Node[]): void {
-  ui().replaceChildren(el('div', { className: 'screen' }, children));
+/** Écran plein (fond de pelouse) ou par-dessus le match (pause, fin). */
+function show(children: Node[], overlay = false): void {
+  ui().replaceChildren(el('div', { className: overlay ? 'screen overlay' : 'screen pitch' }, children));
 }
 
-const CONTROLS = `
-  <div class="controls">
-    <div><b>Joueur 1</b><br>Q / D : courir · Z : sauter<br>F : tir · G : poing · H : super tir</div>
-    <div><b>Joueur 2</b><br>← / → : courir · ↑ : sauter<br>K : tir · L : poing · M : super tir</div>
-  </div>
-  <p class="hint">Seul contre l'ordinateur : les deux jeux de touches marchent. Manettes et écran tactile aussi.</p>`;
+function controls(): HTMLElement {
+  const line = (who: string, keys: string) => el('div', {}, [el('b', {}, [who]), el('span', {}, [keys])]);
+  return el('div', { className: 'controls' }, [
+    line('Seul', KEY_HELP.solo),
+    line('Joueur 1', KEY_HELP.p1),
+    line('Joueur 2', KEY_HELP.p2),
+    el('p', { className: 'hint' }, [
+      'Manettes : stick, A/B pied/PIED, X/Y poing/POING, RB super. Tactile : joystick (haut = saut) et boutons en losange.',
+    ]),
+  ]);
+}
 
 export function showTitle(settings: Settings, onPlay: () => void, empty: boolean): void {
   const level = button(
@@ -59,7 +66,7 @@ export function showTitle(settings: Settings, onPlay: () => void, empty: boolean
       settings.level = LEVELS[(LEVELS.indexOf(settings.level) + 1) % LEVELS.length]!;
       level.textContent = `Niveau : ${CPU_LEVELS[settings.level].label}`;
     },
-    'btn small',
+    'btn small cyan',
   );
   const time = button(
     `Durée : ${settings.time} s`,
@@ -67,25 +74,29 @@ export function showTitle(settings: Settings, onPlay: () => void, empty: boolean
       settings.time = TIMES[(TIMES.indexOf(settings.time) + 1) % TIMES.length]!;
       time.textContent = `Durée : ${settings.time} s`;
     },
-    'btn small',
+    'btn small cyan',
   );
-  const help = el('div');
-  help.innerHTML = CONTROLS;
   const start = (solo: boolean) => () => {
     settings.solo = solo;
     onPlay();
   };
-  show(
-    el('h1', { className: 'title' }, ['FOOT', el('br'), el('span', {}, ['FRIENDS'])]),
-    el('p', { className: 'tagline' }, ['Un contre un, deux cages : tirs, têtes et coups de poing.']),
+  show([
+    el('div', { className: 'logo' }, [
+      el('span', { className: 'ball' }),
+      el('h1', { className: 'title' }, ['FOOT', el('span', {}, ['FRIENDS'])]),
+    ]),
+    el('p', { className: 'tagline' }, ['1 contre 1 · tirs, têtes, volées… et coups de poing !']),
     empty
       ? el('p', { className: 'warn' }, [
           'Aucun personnage : lance « npm run sprites » pour copier ceux de la banque.',
         ])
-      : el('div', { className: 'row' }, [button('1 joueur', start(true)), button('2 joueurs', start(false))]),
+      : el('div', { className: 'row' }, [
+          button('1 joueur', start(true), 'btn big'),
+          button('2 joueurs', start(false), 'btn big pink'),
+        ]),
     el('div', { className: 'row' }, [level, time]),
-    help,
-  );
+    controls(),
+  ]);
 }
 
 /** Choix des deux personnages, l'un après l'autre. */
@@ -101,7 +112,9 @@ export async function showSelect(
   const grid = el('div', { className: 'grid' });
   const refresh = () => {
     const who = picks.length === 0 ? 'Joueur 1' : settings.solo ? "L'ordinateur" : 'Joueur 2';
-    heading.textContent = `${who} : choisis ton personnage`;
+    heading.textContent =
+      picks.length && settings.solo ? `Choisis l'adversaire` : `${who} : choisis ton joueur`;
+    heading.className = picks.length ? 'pick p2' : 'pick p1';
     grid.querySelectorAll('.card').forEach((card, i) => {
       card.classList.toggle('p1', picks[0] === roster[i]);
     });
@@ -114,7 +127,7 @@ export async function showSelect(
   for (const c of roster) {
     const canvas = el('canvas', { width: 96, height: 96 });
     const ctx = canvas.getContext('2d')!;
-    ctx.fillStyle = '#1b1f4b';
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, 96, 96);
     drawPortrait(ctx, c, 0, 0, 96);
     const card = button('', () => pick(c), 'card');
@@ -126,25 +139,31 @@ export async function showSelect(
     const others = roster.filter((c) => c !== picks[0]);
     pick(others[Math.floor(Math.random() * others.length)] ?? roster[0]!);
   };
-  show(
+  show([
     heading,
     grid,
     el('div', { className: 'row' }, [
-      button('Au hasard', random, 'btn small'),
+      button('Au hasard', random, 'btn small cyan'),
       button('Retour', onBack, 'btn small'),
     ]),
-  );
+  ]);
   refresh();
 }
 
 export function showLoading(): void {
-  show(el('h2', {}, ['Chargement…']));
+  show([el('h2', {}, ['Entrée des joueurs…'])]);
 }
 
 export function showPause(onResume: () => void, onQuit: () => void): void {
   show(
-    el('h2', {}, ['Pause']),
-    el('div', { className: 'row' }, [button('Reprendre', onResume), button('Quitter', onQuit)]),
+    [
+      el('h2', {}, ['Pause']),
+      el('div', { className: 'row' }, [
+        button('Reprendre', onResume, 'btn big'),
+        button('Quitter', onQuit, 'btn pink'),
+      ]),
+    ],
+    true,
   );
 }
 
@@ -154,12 +173,16 @@ export function showEnd(
   actions: { replay: () => void; change: () => void; menu: () => void },
 ): void {
   show(
-    el('h2', { className: 'winner' }, [title]),
-    el('p', { className: 'score' }, [score]),
-    el('div', { className: 'row' }, [
-      button('Rejouer', actions.replay),
-      button('Changer de perso', actions.change, 'btn small'),
-      button('Menu', actions.menu, 'btn small'),
-    ]),
+    [
+      el('p', { className: 'whistle' }, ['Coup de sifflet final']),
+      el('h2', { className: 'winner' }, [title]),
+      el('p', { className: 'score' }, [score]),
+      el('div', { className: 'row' }, [
+        button('Rejouer', actions.replay, 'btn big'),
+        button('Changer de joueur', actions.change, 'btn small cyan'),
+        button('Menu', actions.menu, 'btn small'),
+      ]),
+    ],
+    true,
   );
 }

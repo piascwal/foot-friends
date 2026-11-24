@@ -3,7 +3,7 @@
 import { BALL_R, GROUND, PLAYER_H, W } from './constants';
 import { clamp } from './geometry';
 import { STRIKES, strikeZone } from './strikes';
-import { NO_INPUT, type Input, type Match, type Player, type Side } from './types';
+import { NO_INPUT, type Input, type Match, type Player, type Side, type StrikeKind } from './types';
 
 export type CpuLevel = 'easy' | 'normal' | 'hard';
 
@@ -49,7 +49,7 @@ export const newBrain = (level: CpuLevel, rng: () => number = Math.random): CpuB
 });
 
 /** Le ballon est-il dans la zone d'une frappe de ce joueur ? */
-function inZone(p: Player, kind: 'kick' | 'punch' | 'super', bx: number, by: number): boolean {
+function inZone(p: Player, kind: StrikeKind, bx: number, by: number): boolean {
   const spec = STRIKES[kind][p.onGround ? 'ground' : 'air'];
   const zone = strikeZone(p, spec);
   return Math.hypot(bx - zone.x, by - zone.y) < spec.r + BALL_R;
@@ -75,10 +75,13 @@ function chase(me: Player, bx: number, bvx: number): { target: number; behind: b
 function strikes(me: Player, foe: Player, bx: number, by: number, rng: () => number): Partial<Input> {
   if (me.strike) return {};
   if (me.power >= 1 && inZone(me, 'super', bx, by)) return { super: true };
-  if (inZone(me, 'kick', bx, by)) return { kick: true };
-  if (inZone(me, 'punch', bx, by)) return { punch: true };
+  // un coup sur trois environ est une frappe puissante
+  const heavy = rng() < 0.35;
+  if (inZone(me, 'kick', bx, by)) return heavy ? { kickHeavy: true } : { kick: true };
+  if (inZone(me, 'punch', bx, by)) return heavy ? { punchHeavy: true } : { punch: true };
   // adversaire collé devant soi : un coup de poing pour le sonner
-  if (Math.abs(foe.x - me.x) < 60 && (foe.x - me.x) * me.facing > 0 && rng() < 0.3) return { punch: true };
+  if (Math.abs(foe.x - me.x) < 60 && (foe.x - me.x) * me.facing > 0 && rng() < 0.3)
+    return rng() < 0.4 ? { punchHeavy: true } : { punch: true };
   return {};
 }
 
@@ -106,6 +109,6 @@ export function cpuInput(m: Match, side: Side, brain: CpuBrain, dt: number): Inp
 
   if (brain.rng() >= spec.miss) Object.assign(input, strikes(me, foe, b.x, b.y, brain.rng));
   // relâcher les touches de frappe entre deux décisions, pour que le prochain appui compte
-  brain.last = { ...input, kick: false, punch: false, super: false };
+  brain.last = { ...input, kick: false, kickHeavy: false, punch: false, punchHeavy: false, super: false };
   return input;
 }

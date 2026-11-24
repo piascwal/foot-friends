@@ -52,6 +52,14 @@ export function playEvents(events: readonly GameEvent[]): void {
       case 'kick':
         tone(180, 0.12, 'square', 0.18, -120);
         break;
+      case 'kickHeavy':
+        tone(140, 0.18, 'square', 0.24, -100);
+        noise(0.1, 0.3, 1500);
+        break;
+      case 'punchHeavy':
+        noise(0.14, 0.45, 1800);
+        tone(90, 0.14, 'square', 0.18, -50);
+        break;
       case 'punch':
         noise(0.08, 0.35, 2500);
         tone(120, 0.08, 'square', 0.12, -60);

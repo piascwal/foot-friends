@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { BALL_R, GROUND } from '../src/engine/constants';
 import { newMatch } from '../src/engine/match';
-import { NO_INPUT } from '../src/engine/types';
-import { playing, press, run } from './harness';
+import { NO_INPUT, type Input } from '../src/engine/types';
+import { DT, playing, press, run } from './harness';
 
 describe('frappes', () => {
   it('un tir envoie le ballon en l’air vers la cage adverse', () => {
@@ -72,5 +72,41 @@ describe('frappes', () => {
     Object.assign(m.ball, { x: p.x + 4, y: GROUND - 200, vx: 0, vy: 0 });
     run(m, 0.25, () => [press({ jump: true }), NO_INPUT]);
     expect(m.ball.vy).toBeLessThan(0);
+  });
+});
+
+describe('frappes puissantes', () => {
+  it('la frappe puissante du pied part plus vite que le tir', () => {
+    const shot = (keys: Partial<Input>) => {
+      const m = playing(newMatch());
+      const [p] = m.players;
+      Object.assign(m.ball, { x: p.x + 36, y: GROUND - BALL_R - 10, vx: 0, vy: 0 });
+      run(m, 0.3, () => [press(keys), NO_INPUT]);
+      return Math.hypot(m.ball.vx, m.ball.vy);
+    };
+    expect(shot({ kickHeavy: true })).toBeGreaterThan(shot({ kick: true }) * 1.2);
+  });
+
+  it('le coup de poing puissant sonne plus longtemps que le léger', () => {
+    const stun = (keys: Partial<Input>) => {
+      const m = playing(newMatch());
+      const [a, b] = m.players;
+      b.x = a.x + 50;
+      let longest = 0;
+      for (let i = 0; i < 40; i++) {
+        run(m, DT, () => [press(keys), NO_INPUT]);
+        longest = Math.max(longest, b.stun);
+      }
+      return longest;
+    };
+    expect(stun({ punchHeavy: true })).toBeGreaterThan(stun({ punch: true }));
+  });
+
+  it('une frappe puissante charge aussi la jauge de super tir', () => {
+    const m = playing(newMatch());
+    const [p] = m.players;
+    Object.assign(m.ball, { x: p.x + 36, y: GROUND - BALL_R - 10, vx: 0, vy: 0 });
+    run(m, 0.3, () => [press({ kickHeavy: true }), NO_INPUT]);
+    expect(p.power).toBeGreaterThan(0);
   });
 });
