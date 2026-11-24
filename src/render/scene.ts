@@ -1,4 +1,5 @@
 /* Dessin d'une image du match : stade, cages, joueurs, ballon, effets, tableau des scores. */
+import type { Background } from '../assets/background';
 import type { Character } from '../assets/characters';
 import type { PoseKey } from '../data/poses';
 import { BALL_R, GROUND, H, PLAYER_H, PLAYER_R, W } from '../engine/constants';
@@ -136,6 +137,8 @@ export interface SceneInfo extends HudInfo {
   labels: [string, string];
   /** Zone visible en coordonnées du terrain. */
   view: View;
+  /** Fond fourni en image (sinon, stade dessiné). */
+  background: Background | null;
 }
 
 export function drawScene(ctx: CanvasRenderingContext2D, m: Match, fx: Effects, info: SceneInfo): void {
@@ -143,7 +146,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, m: Match, fx: Effects, 
   ctx.save();
   ctx.translate(shake.x, shake.y);
   ctx.imageSmoothingEnabled = false;
-  drawBackdrop(ctx, info.view);
+  drawBackdrop(ctx, info.view, info.background);
   drawGoalBack(ctx, 0);
   drawGoalBack(ctx, 1);
   for (const p of m.players) drawPlayer(ctx, m, p, info.chars[p.side], fx, info.labels[p.side]);

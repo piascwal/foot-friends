@@ -46,6 +46,22 @@ Les images des personnages ne sont **pas** dans ce dépôt : elles viennent de l
 Pour récupérer un nouveau personnage ou une image refaite : relancer la construction (onglet **Actions**,
 **Run workflow**).
 
+## Le fond du stade
+
+Le fond peut être une image fournie : `public/assets/background/stadium.webp` (ou `.png`, `.jpg`). Sans
+image, le jeu dessine son propre stade. Le gabarit `docs/gabarit-fond.png` montre les zones à respecter :
+
+- **Format conseillé : 2560 × 1080** (21:9). La partie centrale **1920 × 1080** (16:9) est le terrain,
+  toujours visible en entier ; les 320 pixels de chaque côté ne se voient que sur les écrans très allongés
+  (téléphones). Une image 1920 × 1080 marche aussi : ses bords sont alors étirés sur ces écrans.
+- **Ligne du sol à y = 940** (87 % de la hauteur) : les pieds des joueurs s'y posent. La pelouse continue
+  en dessous.
+- Le jeu dessine **par-dessus** : les cages (à 124 px de chaque bord du terrain, barre à y = 584), les
+  joueurs, le ballon, le tableau des scores (en haut, y < 185) et, sur téléphone, le joystick et les boutons.
+  L'image ne doit donc contenir ni cage, ni joueur, ni ballon.
+- Au niveau des joueurs (y 600 à 940), éviter le texte et les forts contrastes : ils doivent bien ressortir.
+- Sur un écran plus haut que 16:9 (tablette), le haut et le bas de l'image sont prolongés par leur couleur.
+
 ## Développer
 
 ```bash

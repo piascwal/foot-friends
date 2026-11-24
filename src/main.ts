@@ -1,4 +1,5 @@
 /* Assemblage du jeu : personnages de la banque, écrans, boucle de jeu à pas fixe. */
+import { loadBackground, type Background } from './assets/background';
 import { ensureSprites, loadRoster, type Character } from './assets/characters';
 import { playEvents } from './audio/sfx';
 import { cpuInput, newBrain, type CpuBrain } from './engine/ai';
@@ -27,6 +28,7 @@ const ctx = canvas.getContext('2d')!;
 
 const settings: Settings = { solo: true, level: 'normal', time: 90 };
 let roster: Character[] = [];
+let background: Background | null = null;
 let chars: [Character, Character] | null = null;
 let match: Match | null = null;
 let brain: CpuBrain | null = null;
@@ -70,6 +72,7 @@ function render(): void {
     chars,
     labels: settings.solo ? ['J1', 'CPU'] : ['J1', 'J2'],
     view,
+    background,
   });
 }
 
@@ -156,7 +159,7 @@ async function boot(): Promise<void> {
   if (fullscreenSupported()) fsBtn.addEventListener('click', () => void toggleFullscreen());
   else fsBtn.remove();
   await document.fonts.load('16px "Press Start 2P"').catch(() => undefined);
-  roster = await loadRoster();
+  [roster, background] = await Promise.all([loadRoster(), loadBackground()]);
   title();
   requestAnimationFrame(frame);
 }

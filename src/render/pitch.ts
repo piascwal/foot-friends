@@ -1,5 +1,6 @@
 /* Le stade en pixel art : ciel, tribunes et public, panneaux, pelouse rayée. Dessiné une fois en basse
    résolution (un pixel = 3 pixels monde), puis agrandi sans lissage. */
+import type { Background } from '../assets/background';
 import { BAR_H, GOAL_TOP, GOAL_W, GROUND, H, W } from '../engine/constants';
 
 const PX = 3;
@@ -154,14 +155,39 @@ export function drawMarkings(ctx: CanvasRenderingContext2D): void {
   ctx.fillRect(W / 2 - 5, GROUND - 27, 10, 6);
 }
 
+type ViewRect = { x0: number; x1: number; y0: number; y1: number };
+
 /**
- * Fond sur toute la zone visible (écran plus large ou plus haut que le terrain) : le stade se répète sur
- * les côtés, assombri hors du terrain ; le ciel continue au-dessus, la pelouse en dessous.
+ * Fond fourni en image : sa hauteur couvre celle du terrain (du haut de l'écran au bas de la pelouse),
+ * centrée ; une image plus large que 16:9 montre ses côtés sur les écrans allongés. Au-delà, ses bords
+ * sont étirés, et ses couleurs du haut et du bas prolongent le ciel et la pelouse.
  */
-export function drawBackdrop(
-  ctx: CanvasRenderingContext2D,
-  view: { x0: number; x1: number; y0: number; y1: number },
-): void {
+function drawImageBackdrop(ctx: CanvasRenderingContext2D, bg: Background, view: ViewRect): void {
+  const { img } = bg;
+  const k = H / img.naturalHeight;
+  const w = img.naturalWidth * k;
+  const x = W / 2 - w / 2;
+  ctx.fillStyle = bg.top;
+  ctx.fillRect(view.x0, view.y0, view.x1 - view.x0, H / 2 - view.y0);
+  ctx.fillStyle = bg.bottom;
+  ctx.fillRect(view.x0, H / 2, view.x1 - view.x0, view.y1 - H / 2);
+  // image agrandie : nette (pixel art) ; réduite : lissée
+  ctx.imageSmoothingEnabled = k * ctx.getTransform().a < 1;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, x, 0, w, H);
+  const ih = img.naturalHeight;
+  if (view.x0 < x) ctx.drawImage(img, 0, 0, 1, ih, view.x0, 0, x - view.x0, H);
+  if (view.x1 > x + w) ctx.drawImage(img, img.naturalWidth - 1, 0, 1, ih, x + w, 0, view.x1 - x - w, H);
+  ctx.imageSmoothingEnabled = false;
+}
+
+/**
+ * Fond sur toute la zone visible (écran plus large ou plus haut que le terrain). Avec une image fournie,
+ * c'est elle (sans marquage ajouté : l'image a le sien). Sinon, le stade dessiné se répète sur les côtés,
+ * assombri hors du terrain ; le ciel continue au-dessus, la pelouse en dessous.
+ */
+export function drawBackdrop(ctx: CanvasRenderingContext2D, view: ViewRect, bg: Background | null): void {
+  if (bg) return drawImageBackdrop(ctx, bg, view);
   ctx.fillStyle = SKY_TOP;
   ctx.fillRect(view.x0, view.y0, view.x1 - view.x0, -view.y0 + 1);
   ctx.fillStyle = TURF_BOTTOM;
