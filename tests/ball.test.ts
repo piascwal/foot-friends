@@ -25,10 +25,12 @@ describe('ballon', () => {
     expect(goalLine(ball)).toBeNull();
   });
 
-  it('but quand le ballon est entièrement entré sous la barre', () => {
-    expect(goalLine({ ...newBall(GOAL_W - BALL_R - 1, GROUND - BALL_R) })).toBe(0);
-    expect(goalLine({ ...newBall(W - GOAL_W + BALL_R + 1, GROUND - BALL_R) })).toBe(1);
-    expect(goalLine({ ...newBall(GOAL_W, GROUND - BALL_R) })).toBeNull();
+  it('but quand le ballon est entièrement entré sous la barre, par la ligne de but', () => {
+    expect(goalLine({ ...newBall(GOAL_W - BALL_R - 1, GROUND - BALL_R), mouth: 0 })).toBe(0);
+    expect(goalLine({ ...newBall(W - GOAL_W + BALL_R + 1, GROUND - BALL_R), mouth: 1 })).toBe(1);
+    expect(goalLine({ ...newBall(GOAL_W, GROUND - BALL_R), mouth: 0 })).toBeNull();
+    // dans la cage sans être passé par la ligne de but : pas de but
+    expect(goalLine(newBall(GOAL_W - BALL_R - 1, GROUND - BALL_R))).toBeNull();
   });
 
   it('rebondit sur les murs', () => {

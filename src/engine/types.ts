@@ -60,6 +60,8 @@ export interface Ball {
   vy: number;
   /** Rotation affichée (radians). */
   spin: number;
+  /** Cage dont le ballon a franchi la ligne de but, sous la barre (null : il n'est entré dans aucune). */
+  mouth: 0 | 1 | null;
 }
 
 export type Phase = 'kickoff' | 'play' | 'goal' | 'end';

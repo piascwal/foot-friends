@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { cpuInput, newBrain, seeded } from '../src/engine/ai';
-import { BALL_R, GOAL_W, GROUND } from '../src/engine/constants';
+import { BALL_R, GOAL_TOP, GOAL_W, GROUND } from '../src/engine/constants';
 import { newMatch } from '../src/engine/match';
 import { NO_INPUT, type Match } from '../src/engine/types';
 import { DT, playing, run } from './harness';
 
 /** Met le ballon dans la cage de gauche. */
-const intoLeftGoal = (m: Match) => Object.assign(m.ball, { x: GOAL_W / 2, y: GROUND - BALL_R, vx: 0, vy: 0 });
+/** Envoie le ballon dans la cage de gauche, par la ligne de but. */
+const intoLeftGoal = (m: Match) =>
+  Object.assign(m.ball, { x: GOAL_W + 10, y: GROUND - BALL_R, vx: -700, vy: 0 });
 
 describe('match', () => {
   it('le ballon reste tenu en l’air jusqu’au coup d’envoi', () => {
@@ -21,8 +23,7 @@ describe('match', () => {
   it('un but dans la cage de gauche compte pour le joueur de droite, puis nouveau coup d’envoi', () => {
     const m = playing(newMatch());
     intoLeftGoal(m);
-    m.ball.vx = -500;
-    const events = run(m, DT * 2);
+    const events = run(m, 0.15);
     expect(m.score).toEqual([0, 1]);
     expect(events).toContainEqual({ type: 'goal', side: 1 });
     run(m, 2);
@@ -84,7 +85,7 @@ describe('rythme du jeu', () => {
 
   it('après un but, le ballon reste dans les filets', () => {
     const m = playing(newMatch());
-    Object.assign(m.ball, { x: GOAL_W / 2, y: GROUND - BALL_R, vx: -900, vy: -300 });
+    Object.assign(m.ball, { x: GOAL_W + 10, y: GROUND - BALL_R, vx: -900, vy: -300 });
     run(m, 2);
     expect(m.phase).toBe('goal');
     expect(m.ball.x).toBeLessThan(GOAL_W);
@@ -100,5 +101,34 @@ describe('rythme du jeu', () => {
       total += m.score[0] + m.score[1];
     }
     expect(total / 3).toBeLessThan(10);
+  });
+});
+
+describe('ligne de but', () => {
+  it('un ballon poussé à travers la barre ne compte pas : il est remis dessus', () => {
+    const m = playing(newMatch());
+    // ballon coincé dans le coin, sur la barre contre le bord du terrain, puis enfoncé dedans
+    Object.assign(m.ball, { x: BALL_R, y: GOAL_TOP + 10, vx: 0, vy: 0 });
+    const events = run(m, 0.5);
+    expect(events.some((e) => e.type === 'goal')).toBe(false);
+    expect(m.score).toEqual([0, 0]);
+    expect(m.ball.y).toBeLessThan(GOAL_TOP);
+  });
+
+  it('un joueur qui bloque le ballon sur la barre contre le bord ne le fait pas entrer', () => {
+    const m = playing(newMatch());
+    const [, p] = m.players;
+    // le joueur de droite est monté sur la barre de gauche et pousse le ballon contre le bord
+    Object.assign(p, { x: BALL_R * 2 + 30, y: GOAL_TOP - 8 });
+    Object.assign(m.ball, { x: BALL_R, y: GOAL_TOP - 8 - BALL_R, vx: 0, vy: 0 });
+    const events = run(m, 2, () => [NO_INPUT, { ...NO_INPUT, left: true, punch: true }]);
+    expect(events.some((e) => e.type === 'goal')).toBe(false);
+  });
+
+  it('un ballon entré par devant, sous la barre, compte', () => {
+    const m = playing(newMatch());
+    intoLeftGoal(m);
+    run(m, 0.2);
+    expect(m.score).toEqual([0, 1]);
   });
 });

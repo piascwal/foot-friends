@@ -9,7 +9,7 @@ export const GROUND = 470;
 /** Profondeur d'une cage (depuis le bord de l'écran). */
 export const GOAL_W = 80;
 /** Dessous de la barre transversale. */
-export const GOAL_TOP = 318;
+export const GOAL_TOP = 305;
 /** Épaisseur de la barre. */
 export const BAR_H = 8;
 

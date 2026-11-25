@@ -20,7 +20,7 @@ export const BARS = [
 ] as const;
 
 export function newBall(x: number, y: number): Ball {
-  return { x, y, vx: 0, vy: 0, spin: 0 };
+  return { x, y, vx: 0, vy: 0, spin: 0, mouth: null };
 }
 
 /** Limite la vitesse du ballon (il reste rattrapable). */
@@ -82,11 +82,38 @@ export function stepBall(b: Ball, dt: number, events: GameEvent[]): void {
   }
 }
 
-/** Le ballon est entièrement entré dans une cage, sous la barre : 0 = cage de gauche, 1 = de droite. */
+/**
+ * Suit le passage de la ligne de but : le ballon ne compte que s'il est entré dans la cage par devant,
+ * sous la barre. S'il s'y retrouve autrement (poussé à travers la barre, coincé contre le bord du
+ * terrain), il est remis sur la barre. `prevX` : position du ballon avant cette image.
+ */
+export function trackMouth(b: Ball, prevX: number): void {
+  const left = b.x < GOAL_W;
+  const right = b.x > W - GOAL_W;
+  if (!left && !right) {
+    b.mouth = null;
+    return;
+  }
+  const side = left ? 0 : 1;
+  const line = left ? GOAL_W : W - GOAL_W;
+  const crossed = left ? prevX >= line : prevX <= line;
+  if (b.mouth === side) return;
+  if (crossed && b.y > GOAL_TOP) {
+    b.mouth = side;
+    return;
+  }
+  // dans la zone de la cage sans être passé sous la barre : il est au-dessus (normal) ou il a traversé
+  if (b.y + BALL_R > GOAL_TOP - BAR_H) {
+    b.y = GOAL_TOP - BAR_H - BALL_R;
+    b.vy = -Math.abs(b.vy) * BALL_BOUNCE;
+  }
+}
+
+/** Le ballon est entièrement entré dans une cage par devant, sous la barre : 0 = gauche, 1 = droite. */
 export function goalLine(b: Ball): 0 | 1 | null {
   if (b.y - BALL_R * 0.5 < GOAL_TOP) return null;
-  if (b.x + BALL_R < GOAL_W) return 0;
-  if (b.x - BALL_R > W - GOAL_W) return 1;
+  if (b.mouth === 0 && b.x + BALL_R < GOAL_W) return 0;
+  if (b.mouth === 1 && b.x - BALL_R > W - GOAL_W) return 1;
   return null;
 }
 

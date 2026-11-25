@@ -1,5 +1,5 @@
 /* Le match : coup d'envoi, jeu, buts, temps, but en or, fin. */
-import { catchInNet, goalLine, newBall, stepBall } from './ball';
+import { catchInNet, goalLine, newBall, stepBall, trackMouth } from './ball';
 import { GOAL_PAUSE, KICKOFF_PAUSE, MATCH_TIME, W } from './constants';
 import { ballOnPlayer } from './contact';
 import { movePlayer, newPlayer, separatePlayers, steer } from './player';
@@ -56,9 +56,11 @@ function simulate(m: Match, inputs: readonly [Input, Input], dt: number, frozen:
   if (frozen) return;
   stepStrike(a, b, m.ball, dt, m.events);
   stepStrike(b, a, m.ball, dt, m.events);
+  const prevX = m.ball.x;
   stepBall(m.ball, dt, m.events);
   ballOnPlayer(m.ball, a, m.events);
   ballOnPlayer(m.ball, b, m.events);
+  trackMouth(m.ball, prevX);
 }
 
 /** Avance le match de `dt` secondes (pas fixe conseillé : 1/120). */

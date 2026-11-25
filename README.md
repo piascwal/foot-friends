@@ -63,7 +63,7 @@ image, le jeu dessine son propre stade. Le gabarit `docs/gabarit-fond.png` montr
   (téléphones). Une image 1920 × 1080 marche aussi : ses bords sont alors étirés sur ces écrans.
 - **Ligne du sol à y = 940** (87 % de la hauteur) : les pieds des joueurs s'y posent. La pelouse continue
   en dessous.
-- Le jeu dessine **par-dessus** : les cages (à 124 px de chaque bord du terrain, barre à y = 584), les
+- Le jeu dessine **par-dessus** : les cages (160 px de profondeur depuis chaque bord du terrain, barre à y = 594), les
   joueurs, le ballon, le tableau des scores (en haut, y < 185) et, sur téléphone, le joystick et les boutons.
   L'image ne doit donc contenir ni cage, ni joueur, ni ballon.
 - Au niveau des joueurs (y 600 à 940), éviter le texte et les forts contrastes : ils doivent bien ressortir.
