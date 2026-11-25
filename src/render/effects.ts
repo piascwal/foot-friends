@@ -1,7 +1,7 @@
-/* Effets visuels déclenchés par les événements du match : poussière, étincelles, flammes du super tir,
+/* Effets visuels déclenchés par les événements du match : poussière, étincelles,
    confettis et tremblement de l'écran après un but. */
 import { W } from '../engine/constants';
-import type { Ball, GameEvent } from '../engine/types';
+import type { GameEvent } from '../engine/types';
 
 interface Particle {
   x: number;
@@ -44,13 +44,7 @@ export class Effects {
   onEvents(events: readonly GameEvent[]): void {
     for (const e of events) {
       if (e.type === 'kick' || e.type === 'punch') this.burst(e.x, e.y, 8, ['#fff', '#ffe600'], 220);
-      else if (e.type === 'kickHeavy' || e.type === 'punchHeavy') {
-        this.burst(e.x, e.y, 16, ['#fff', '#00d9ff', '#ff2e88'], 320);
-        this.shake = Math.max(this.shake, 0.15);
-      } else if (e.type === 'super') {
-        this.burst(e.x, e.y, 22, ['#ff6b35', '#ffd23f', '#fff'], 380);
-        this.shake = Math.max(this.shake, 0.25);
-      } else if (e.type === 'bounce') this.burst(e.x, e.y + 12, 4, ['#cfe8c0', '#8fbf7f'], 80);
+      else if (e.type === 'bounce') this.burst(e.x, e.y + 12, 4, ['#cfe8c0', '#8fbf7f'], 80);
       else if (e.type === 'post') {
         this.burst(e.x, e.y, 10, ['#fff', '#b9b9c6'], 200);
         this.shake = Math.max(this.shake, 0.12);
@@ -61,23 +55,6 @@ export class Effects {
         this.shake = 0.45;
       }
     }
-  }
-
-  /** Traînée du ballon de feu. */
-  trail(ball: Ball): void {
-    if (ball.fire <= 0) return;
-    for (let i = 0; i < 2; i++)
-      this.particles.push({
-        x: ball.x + (Math.random() - 0.5) * 12,
-        y: ball.y + (Math.random() - 0.5) * 12,
-        vx: -ball.vx * 0.1,
-        vy: -40 - Math.random() * 60,
-        life: 0.3,
-        max: 0.3,
-        size: 5 + Math.floor(Math.random() * 4),
-        color: Math.random() < 0.5 ? '#ff6b35' : '#ffd23f',
-        gravity: -100,
-      });
   }
 
   update(dt: number): void {

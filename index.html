@@ -21,17 +21,14 @@
   <body>
     <canvas id="cv"></canvas>
 
-    <!-- commandes tactiles du joueur 1 : joystick à gauche, boutons en losange à droite (src/input/touch.ts) -->
+    <!-- commandes tactiles : glissière gauche-droite à gauche, SAUT / PIED / POING à droite (src/input/touch.ts) -->
     <div id="touch">
-      <div id="stick"><div id="knob"></div></div>
-      <div class="btn p" data-b="punch">A<small>poing</small></div>
-      <div class="btn p h" data-b="punchHeavy">B<small>POING</small></div>
-      <div class="btn k" data-b="kick">C<small>pied</small></div>
-      <div class="btn k h" data-b="kickHeavy">D<small>PIED</small></div>
-      <div class="btn s" data-b="super">★<small>SUPER</small></div>
+      <div id="slider"><div id="knob"></div></div>
+      <div class="tbtn jump" data-b="jump">SAUT</div>
+      <div class="tbtn kick" data-b="kick">PIED</div>
+      <div class="tbtn punch" data-b="punch">POING</div>
     </div>
     <button id="pauseBtn" aria-label="Pause">II</button>
-    <button id="fsBtn" aria-label="Plein écran" title="Plein écran">⛶</button>
     <!-- le jeu se joue à l'horizontale : à la verticale, ce message recouvre tout -->
     <div id="rotate">
       <p>Tourne ton téléphone<br />à l'horizontale</p>

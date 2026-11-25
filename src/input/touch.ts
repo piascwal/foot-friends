@@ -1,36 +1,38 @@
-/* Commandes tactiles : joystick flottant à gauche (pousser vers le haut pour sauter), quatre boutons en
-   losange à droite (poing / POING / pied / PIED) et le bouton du super tir au-dessus.
+/* Commandes tactiles : à gauche, une glissière gauche-droite (on pose le pouce n'importe où dans la
+   moitié gauche et on glisse) ; à droite, trois boutons : SAUT, PIED, POING.
    Un doigt = un seul bouton (le plus proche) : pas besoin de viser juste. */
 import { NO_INPUT, type Input } from '../engine/types';
 
-type Button = 'punch' | 'punchHeavy' | 'kick' | 'kickHeavy' | 'super';
-const BUTTONS: readonly Button[] = ['punch', 'punchHeavy', 'kick', 'kickHeavy', 'super'];
+type Button = 'jump' | 'kick' | 'punch';
+const BUTTONS: readonly Button[] = ['jump', 'kick', 'punch'];
 
-/** Part gauche de l'écran réservée au joystick. */
+/** Part gauche de l'écran réservée à la glissière. */
 const STICK_ZONE = 0.45;
-/** En dessous de cette fraction du rayon, le joystick est au neutre. */
-const DEAD_ZONE = 0.28;
+/** En dessous de cette fraction de la course, la glissière est au neutre. */
+const DEAD_ZONE = 0.22;
 /** Un bouton réagit jusqu'à cette distance de son centre (en rayons). */
-const BUTTON_REACH = 1.9;
+const BUTTON_REACH = 1.8;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
 interface Geometry {
-  button: number;
-  stick: number;
+  /** Rayon de chaque bouton. */
+  radius: Record<Button, number>;
   centers: Record<Button, [number, number]>;
+  /** Demi-course de la glissière. */
+  travel: number;
   home: [number, number];
 }
 
 let layer: HTMLElement;
-let stick: HTMLElement;
+let slider: HTMLElement;
 let knob: HTMLElement;
 const buttons = {} as Record<Button, HTMLElement>;
 let geo: Geometry | null = null;
 let stickTouch: number | null = null;
-let base: [number, number] = [0, 0];
+let base = 0;
 const fingers = new Map<number, Button | null>();
-const state = { x: 0, up: false, held: new Set<Button>() };
+const state = { x: 0, held: new Set<Button>() };
 
 /** Commandes tenues sur l'écran tactile. */
 export function touchInput(): Input {
@@ -38,89 +40,77 @@ export function touchInput(): Input {
   return {
     left: state.x < 0,
     right: state.x > 0,
-    jump: state.up,
-    punch: state.held.has('punch'),
-    punchHeavy: state.held.has('punchHeavy'),
+    jump: state.held.has('jump'),
     kick: state.held.has('kick'),
-    kickHeavy: state.held.has('kickHeavy'),
-    super: state.held.has('super'),
+    punch: state.held.has('punch'),
   };
 }
 
-/** Recalcule tailles et positions (rotation de l'écran, redimensionnement). */
+/** Recalcule tailles et positions (rotation de l'écran, redimensionnement, début de partie). */
 export function layoutTouch(): void {
   if (!layer) return;
   const rect = layer.getBoundingClientRect();
-  const r = clamp(rect.height * 0.075, 22, 38);
-  const gap = r * 1.7;
-  const marginX = Math.max(16, rect.width * 0.03);
-  const marginY = Math.max(12, rect.height * 0.05);
-  // centre du losange
-  const cx = rect.width - marginX - r - gap;
-  const cy = rect.height - marginY - r - gap;
+  if (!rect.width) return;
+  const r = clamp(rect.height * 0.085, 26, 44);
+  const marginX = Math.max(18, rect.width * 0.03);
+  const marginY = Math.max(14, rect.height * 0.05);
+  // saut : le gros bouton, sous le pouce ; pied et poing au-dessus, en arc
+  const jx = rect.width - marginX - r * 1.3;
+  const jy = rect.height - marginY - r * 1.3;
   const centers: Geometry['centers'] = {
-    punchHeavy: [cx, cy - gap],
-    punch: [cx - gap, cy],
-    kickHeavy: [cx + gap, cy],
-    kick: [cx, cy + gap],
-    super: [cx - gap * 1.25, cy - gap * 1.6],
+    jump: [jx, jy],
+    kick: [jx - r * 2.7, jy - r * 0.4],
+    punch: [jx - r * 0.7, jy - r * 2.6],
   };
+  const radius: Geometry['radius'] = { jump: r * 1.3, kick: r, punch: r };
   for (const b of BUTTONS) {
-    const size = b === 'super' ? r * 0.85 : r;
     const el = buttons[b];
-    el.style.width = el.style.height = `${size * 2}px`;
-    el.style.left = `${centers[b][0] - size}px`;
-    el.style.top = `${centers[b][1] - size}px`;
-    el.style.fontSize = `${size * 0.62}px`;
+    el.style.width = el.style.height = `${radius[b] * 2}px`;
+    el.style.left = `${centers[b][0] - radius[b]}px`;
+    el.style.top = `${centers[b][1] - radius[b]}px`;
+    el.style.fontSize = `${radius[b] * 0.36}px`;
   }
-  const s = clamp(rect.height * 0.16, 44, 76);
-  stick.style.width = stick.style.height = `${s * 2}px`;
-  knob.style.width = knob.style.height = `${s}px`;
-  geo = { button: r, stick: s, centers, home: [marginX + s + 12, rect.height - marginY - s * 1.15] };
-  if (stickTouch === null) placeStick(...geo.home);
+  const travel = clamp(rect.width * 0.09, 50, 90);
+  const knobSize = clamp(rect.height * 0.15, 44, 70);
+  slider.style.width = `${travel * 2 + knobSize}px`;
+  slider.style.height = `${knobSize + 12}px`;
+  knob.style.width = knob.style.height = `${knobSize}px`;
+  geo = {
+    radius,
+    centers,
+    travel,
+    home: [marginX + travel + knobSize / 2 + 6, rect.height - marginY - knobSize / 2 - 6],
+  };
+  if (stickTouch === null) placeSlider(...geo.home);
 }
 
-function placeStick(x: number, y: number): void {
-  base = [x, y];
-  stick.style.left = `${x - geo!.stick}px`;
-  stick.style.top = `${y - geo!.stick}px`;
+function placeSlider(x: number, y: number): void {
+  base = x;
+  slider.style.left = `${x - slider.offsetWidth / 2}px`;
+  slider.style.top = `${y - slider.offsetHeight / 2}px`;
   knob.style.transform = '';
 }
 
-function moveStick(px: number, py: number): void {
-  const max = geo!.stick;
-  let dx = px - base[0];
-  let dy = py - base[1];
-  const dist = Math.hypot(dx, dy);
-  // si le pouce s'éloigne trop, la base le suit : inutile de regarder l'écran
-  if (dist > max * 1.35) {
-    const k = (dist - max * 1.35) / dist;
-    base = [base[0] + dx * k, base[1] + dy * k];
-    stick.style.left = `${base[0] - max}px`;
-    stick.style.top = `${base[1] - max}px`;
-    dx = px - base[0];
-    dy = py - base[1];
+function moveSlider(px: number): void {
+  const max = geo!.travel;
+  let dx = px - base;
+  // si le pouce dépasse la course, la glissière le suit : inutile de regarder l'écran
+  if (Math.abs(dx) > max * 1.3) {
+    base += dx - Math.sign(dx) * max * 1.3;
+    slider.style.left = `${base - slider.offsetWidth / 2}px`;
+    dx = px - base;
   }
-  const d = Math.hypot(dx, dy);
-  const k = d > max ? max / d : 1;
-  knob.style.transform = `translate(${dx * k}px,${dy * k}px)`;
-  if (d < max * DEAD_ZONE) {
-    state.x = 0;
-    state.up = false;
-    return;
-  }
-  // haut sur un large secteur (diagonales comprises) : on saute en courant
-  const angle = Math.atan2(dy, dx);
-  state.up = angle < -Math.PI / 8 && angle > (-7 * Math.PI) / 8;
-  state.x = Math.abs(dx) > d * 0.38 ? Math.sign(dx) : 0;
+  const shown = clamp(dx, -max, max);
+  knob.style.transform = `translateX(${shown}px)`;
+  state.x = Math.abs(dx) < max * DEAD_ZONE ? 0 : Math.sign(dx);
 }
 
 function buttonAt(px: number, py: number): Button | null {
   let best: Button | null = null;
-  let bestDist = geo!.button * BUTTON_REACH;
+  let bestDist = Infinity;
   for (const b of BUTTONS) {
-    const d = Math.hypot(px - geo!.centers[b][0], py - geo!.centers[b][1]);
-    if (d < bestDist) {
+    const d = Math.hypot(px - geo!.centers[b][0], py - geo!.centers[b][1]) / geo!.radius[b];
+    if (d < BUTTON_REACH && d < bestDist) {
       bestDist = d;
       best = b;
     }
@@ -138,12 +128,11 @@ function refreshButtons(): void {
   state.held = now;
 }
 
-function releaseStick(): void {
+function releaseSlider(): void {
   stickTouch = null;
   state.x = 0;
-  state.up = false;
-  stick.classList.remove('on');
-  if (geo) placeStick(...geo.home);
+  slider.classList.remove('on');
+  if (geo) placeSlider(...geo.home);
 }
 
 function onTouch(event: TouchEvent): void {
@@ -158,14 +147,14 @@ function onTouch(event: TouchEvent): void {
       if (px >= rect.width * STICK_ZONE) fingers.set(id, buttonAt(px, py));
       else if (stickTouch === null) {
         stickTouch = id;
-        placeStick(px, py);
-        stick.classList.add('on');
+        placeSlider(px, py);
+        slider.classList.add('on');
       }
     } else if (event.type === 'touchmove') {
-      if (id === stickTouch) moveStick(px, py);
+      if (id === stickTouch) moveSlider(px);
       else if (fingers.has(id)) fingers.set(id, buttonAt(px, py));
     } else {
-      if (id === stickTouch) releaseStick();
+      if (id === stickTouch) releaseSlider();
       fingers.delete(id);
     }
   }
@@ -174,15 +163,16 @@ function onTouch(event: TouchEvent): void {
 
 /** Relâche tout (changement d'écran, pause). */
 export function resetTouch(): void {
+  if (!layer) return;
   fingers.clear();
-  releaseStick();
+  releaseSlider();
   refreshButtons();
 }
 
 /** Branche les commandes tactiles ; elles s'affichent dès qu'un doigt touche l'écran. */
 export function initTouch(): void {
   layer = document.getElementById('touch')!;
-  stick = document.getElementById('stick')!;
+  slider = document.getElementById('slider')!;
   knob = document.getElementById('knob')!;
   for (const b of BUTTONS) buttons[b] = layer.querySelector<HTMLElement>(`[data-b="${b}"]`)!;
   for (const type of ['touchstart', 'touchmove', 'touchend', 'touchcancel'] as const)
@@ -194,9 +184,4 @@ export function initTouch(): void {
   window.addEventListener('touchstart', markSeen, { once: true, passive: true });
   if (matchMedia('(pointer: coarse)').matches) markSeen();
   window.addEventListener('resize', layoutTouch);
-}
-
-/** Le bouton du super tir brille quand la jauge est pleine. */
-export function setSuperReady(ready: boolean): void {
-  buttons.super?.classList.toggle('ready', ready);
 }

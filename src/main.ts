@@ -1,37 +1,42 @@
-/* Assemblage du jeu : personnages de la banque, écrans, boucle de jeu à pas fixe. */
+/* Assemblage du jeu : personnages de la banque, écrans, boucle de jeu à pas fixe.
+   Trois façons de jouer un match :
+   - solo : contre l'ordinateur, simulé ici ;
+   - hôte (réseau) : simulé ici, avec les commandes reçues de l'invité ; l'état part chez l'invité ;
+   - invité (réseau) : on envoie ses commandes et on affiche l'état reçu de l'hôte (voir lan-game.ts). */
 import { loadBackground, type Background } from './assets/background';
 import { ensureSprites, loadRoster, type Character } from './assets/characters';
 import { playEvents } from './audio/sfx';
 import { cpuInput, newBrain, type CpuBrain } from './engine/ai';
 import { H, W } from './engine/constants';
 import { newMatch, stepMatch } from './engine/match';
-import type { Match } from './engine/types';
+import { NO_INPUT, type GameEvent, type Input, type Match } from './engine/types';
 import { listenKeyboard, readInput } from './input/controls';
-import { initTouch, layoutTouch, resetTouch, setSuperReady } from './input/touch';
+import { initTouch, layoutTouch, resetTouch } from './input/touch';
+import { closeLan, openLan, type LanContext, type NetSession } from './lan-game';
+import { decodeInput, decodeState, encodeInput, encodeState } from './net/protocol';
 import { Effects } from './render/effects';
 import { drawScene } from './render/scene';
-import { enterFullscreen, fullscreenSupported, toggleFullscreen } from './ui/fullscreen';
-import {
-  hideScreens,
-  showEnd,
-  showLoading,
-  showPause,
-  showSelect,
-  showTitle,
-  type Settings,
-} from './ui/screens';
+import { hideScreens } from './ui/dom';
+import { enterFullscreen } from './ui/fullscreen';
+import { showEnd, showPause, showSelect, showTitle, showWaiting, type Settings } from './ui/screens';
 import './style.css';
 
 const STEP = 1 / 120;
 const canvas = document.getElementById('cv') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
 
-const settings: Settings = { solo: true, level: 'normal', time: 90 };
+const settings: Settings = { level: 'normal', time: 90 };
 let roster: Character[] = [];
 let background: Background | null = null;
 let chars: [Character, Character] | null = null;
 let match: Match | null = null;
 let brain: CpuBrain | null = null;
+/** Partie en réseau en cours (null : solo). */
+let net: NetSession | null = null;
+/** Commandes de l'invité, reçues par l'hôte. */
+let remoteInput: Input = NO_INPUT;
+/** Événements du match pas encore envoyés à l'invité. */
+let unsent: GameEvent[] = [];
 let fx = new Effects();
 let paused = false;
 let endShown = false;
@@ -49,10 +54,15 @@ function resize(): { scale: number; ox: number; oy: number } {
     canvas.height = Math.round(ch * dpr);
   }
   const scale = Math.min(canvas.width / W, canvas.height / H);
-  // écran plus haut que le terrain (tablette) : un peu de ciel au-dessus, plus de pelouse en dessous,
-  // où se placent les commandes tactiles
+  // écran plus haut que le terrain (tablette) : un peu de ciel au-dessus, plus de pelouse en dessous
   const oy = (canvas.height - H * scale) * 0.35;
   return { scale, ox: (canvas.width - W * scale) / 2, oy };
+}
+
+/** Noms affichés au-dessus des joueurs. */
+function labels(): [string, string] {
+  if (!net) return ['MOI', 'CPU'];
+  return net.role === 'host' ? ['MOI', net.names[1]] : [net.names[0], 'MOI'];
 }
 
 function render(): void {
@@ -68,60 +78,106 @@ function render(): void {
     y0: -oy / scale,
     y1: (canvas.height - oy) / scale,
   };
-  drawScene(ctx, match, fx, {
-    chars,
-    labels: settings.solo ? ['J1', 'CPU'] : ['J1', 'J2'],
-    view,
-    background,
-  });
+  drawScene(ctx, match, fx, { chars, labels: labels(), view, background });
 }
 
-function title(): void {
+function stopMatch(): void {
   match = null;
+  paused = false;
   document.body.classList.remove('playing');
-  showTitle(settings, select, roster.length === 0);
   resetTouch();
 }
 
-function select(): void {
-  match = null;
-  // sur téléphone, le jeu passe en plein écran dès qu'on choisit un mode (geste du joueur)
-  if (matchMedia('(pointer: coarse)').matches) void enterFullscreen();
-  void showSelect(roster, settings, (picked) => void start(picked), title);
+function title(): void {
+  stopMatch();
+  net = null;
+  closeLan();
+  showTitle(settings, { solo: soloSelect, lan: () => void openLan(lanContext) }, roster.length === 0);
 }
 
-async function start(picked: [Character, Character]): Promise<void> {
-  showLoading();
+/** Sur téléphone, le jeu passe en plein écran dès qu'on choisit un mode (il faut un geste du joueur). */
+function goFullscreen(): void {
+  if (matchMedia('(pointer: coarse)').matches) void enterFullscreen();
+}
+
+function soloSelect(): void {
+  goFullscreen();
+  stopMatch();
+  void showSelect(
+    roster,
+    ['Choisis ton joueur', "Choisis l'adversaire"],
+    (p) => void start([p[0]!, p[1]!]),
+    title,
+  );
+}
+
+/** Lance un match ; `session` : partie en réseau (sinon, contre l'ordinateur). */
+async function start(picked: [Character, Character], session: NetSession | null = null): Promise<void> {
+  showWaiting('Entrée des joueurs…');
   await Promise.all(picked.map((c) => ensureSprites(c)));
   chars = picked;
+  net = session;
   match = newMatch(settings.time);
-  brain = settings.solo ? newBrain(settings.level) : null;
+  brain = session ? null : newBrain(settings.level);
+  remoteInput = NO_INPUT;
+  unsent = [];
   fx = new Effects();
   paused = false;
   endShown = false;
+  if (session) listenNet(session);
   document.body.classList.add('playing');
-  // les commandes tactiles viennent d'apparaître : on place joystick et boutons
   layoutTouch();
   hideScreens();
 }
 
+/** Canal de jeu : l'hôte reçoit les commandes, l'invité reçoit l'état du match. */
+function listenNet(session: NetSession): void {
+  session.link.onGame = (data) => {
+    if (session.role === 'host') {
+      remoteInput = decodeInput(data) ?? remoteInput;
+      return;
+    }
+    const state = decodeState(data);
+    if (!state || !match) return;
+    match = state.match;
+    fx.onEvents(state.events);
+    playEvents(state.events);
+  };
+}
+
 function togglePause(): void {
   if (!match || match.phase === 'end') return;
+  // en réseau, le match continue : on propose seulement de quitter
   paused = !paused;
   resetTouch();
-  if (paused) showPause(togglePause, title);
-  else hideScreens();
+  if (!paused) hideScreens();
+  else
+    showPause(net ? 'Quitter le match ?' : 'Pause', {
+      resume: togglePause,
+      quit: title,
+    });
 }
 
 function endScreen(m: Match, c: [Character, Character]): void {
   const [a, b] = m.score;
-  const winner = a === b ? null : a > b ? c[0] : c[1];
-  const who = winner === c[1] && settings.solo ? `L'ordinateur (${winner.name})` : winner?.name;
-  showEnd(winner ? `Victoire de ${who} !` : 'Match nul', `${c[0].name} ${a} - ${b} ${c[1].name}`, {
-    replay: () => void start(c),
-    change: select,
-    menu: title,
-  });
+  const winner = a === b ? null : a > b ? 0 : 1;
+  const mine = net?.role === 'guest' ? 1 : 0;
+  const text = winner === null ? 'Match nul' : winner === mine ? 'Victoire !' : 'Défaite…';
+  const score = `${c[0].name} ${a} - ${b} ${c[1].name}`;
+  if (!net) showEnd(text, score, { replay: () => void start(c), change: soloSelect, menu: title });
+  else if (net.role === 'host')
+    showEnd(text, score, { replay: net.replay, change: net.reselect, menu: title });
+  else showEnd(text, score, { menu: title, waiting: `${net.names[0]} choisit la suite…` });
+}
+
+/** Une image de simulation (solo et hôte). */
+function simulate(m: Match): void {
+  const mine = readInput();
+  const other = brain ? cpuInput(m, 1, brain, STEP) : remoteInput;
+  stepMatch(m, [mine, other], STEP);
+  fx.onEvents(m.events);
+  playEvents(m.events);
+  if (net) unsent.push(...m.events);
 }
 
 let acc = 0;
@@ -129,20 +185,22 @@ let last = performance.now();
 function frame(now: number): void {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
-  if (match && chars && !paused) {
-    acc += dt;
-    while (acc >= STEP) {
-      acc -= STEP;
-      const p1 = readInput(0, settings.solo);
-      const p2 = brain ? cpuInput(match, 1, brain, STEP) : readInput(1, false);
-      stepMatch(match, [p1, p2], STEP);
-      fx.onEvents(match.events);
-      playEvents(match.events);
+  const m = match;
+  if (m && chars) {
+    if (net?.role === 'guest') net.link.sendGame(encodeInput(paused ? NO_INPUT : readInput()));
+    else if (!paused || net) {
+      acc += dt;
+      while (acc >= STEP) {
+        acc -= STEP;
+        simulate(m);
+      }
+      if (net) {
+        net.link.sendGame(encodeState(m, unsent));
+        unsent = [];
+      }
     }
-    setSuperReady(match.players[0].power >= 1);
-    fx.trail(match.ball);
     fx.update(dt);
-    if (match.phase === 'end' && match.phaseT > 2 && !endShown) {
+    if (match && match.phase === 'end' && match.phaseT > 2 && !endShown) {
       endShown = true;
       endScreen(match, chars);
     }
@@ -151,13 +209,20 @@ function frame(now: number): void {
   requestAnimationFrame(frame);
 }
 
+/** Ce que la partie en réseau demande au jeu. */
+const lanContext: LanContext = {
+  roster: () => roster,
+  time: () => settings.time,
+  start: (picked: [Character, Character], session: NetSession) => void start(picked, session),
+  stop: stopMatch,
+  title,
+  fullscreen: goFullscreen,
+};
+
 async function boot(): Promise<void> {
   listenKeyboard(togglePause);
   initTouch();
   document.getElementById('pauseBtn')!.addEventListener('click', togglePause);
-  const fsBtn = document.getElementById('fsBtn')!;
-  if (fullscreenSupported()) fsBtn.addEventListener('click', () => void toggleFullscreen());
-  else fsBtn.remove();
   await document.fonts.load('16px "Press Start 2P"').catch(() => undefined);
   [roster, background] = await Promise.all([loadRoster(), loadBackground()]);
   title();

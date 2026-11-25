@@ -12,8 +12,9 @@ const LAYERS = {
   assets: ['data'],
   audio: ['engine'],
   input: ['engine'],
+  net: ['engine'],
   render: ['data', 'engine', 'assets'],
-  ui: ['data', 'engine', 'assets', 'render', 'audio', 'input'],
+  ui: ['data', 'engine', 'assets', 'render', 'audio', 'input', 'net'],
 };
 const layerNames = Object.keys(LAYERS);
 

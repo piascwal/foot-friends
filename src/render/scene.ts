@@ -23,9 +23,7 @@ export function poseOf(m: Match, p: Player): PoseKey {
   if (p.strike) {
     const { kind, air } = p.strike;
     if (kind === 'kick') return air ? 'jump_kick' : 'kick_light';
-    if (kind === 'punch') return air ? 'jump_punch' : 'punch_light';
-    if (kind === 'punchHeavy') return air ? 'jump_punch' : 'punch_heavy';
-    return air ? 'jump_kick' : 'kick_heavy';
+    return air ? 'jump_punch' : 'punch_light';
   }
   if (!p.onGround) return 'jump';
   if (Math.abs(p.vx) > 10) return Math.floor(p.stride / 46) % 2 ? 'walk2' : 'walk1';
@@ -92,12 +90,6 @@ function drawBall(ctx: CanvasRenderingContext2D, m: Match): void {
   ctx.translate(b.x, b.y);
   ctx.rotate(b.spin);
   ctx.imageSmoothingEnabled = false;
-  if (b.fire > 0) {
-    ctx.fillStyle = 'rgba(255,120,40,0.45)';
-    ctx.beginPath();
-    ctx.arc(0, 0, BALL_R + 7, 0, Math.PI * 2);
-    ctx.fill();
-  }
   ctx.drawImage(ballSprite(), -BALL_R, -BALL_R, BALL_R * 2, BALL_R * 2);
   ctx.restore();
 }

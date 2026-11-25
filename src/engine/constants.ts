@@ -7,27 +7,32 @@ export const H = 540;
 export const GROUND = 470;
 
 /** Profondeur d'une cage (depuis le bord de l'écran). */
-export const GOAL_W = 62;
+export const GOAL_W = 80;
 /** Dessous de la barre transversale. */
-export const GOAL_TOP = 300;
+export const GOAL_TOP = 318;
 /** Épaisseur de la barre. */
 export const BAR_H = 8;
 
-export const GRAVITY = 1500;
+/** Gravité des joueurs : sauts hauts mais vifs. */
+export const GRAVITY = 1900;
+/** Gravité du ballon, plus faible : il flotte, on a le temps de jouer de la tête. */
+export const BALL_GRAVITY = 1000;
 
-export const BALL_R = 15;
+/** Gros ballon (presque une tête de joueur) : facile à toucher, beaucoup de contacts. */
+export const BALL_R = 24;
 /** Rebond du ballon sur le sol, les murs, la barre. */
 export const BALL_BOUNCE = 0.68;
 /** Frottement au sol (par seconde, part de vitesse gardée). */
-export const BALL_ROLL = 0.4;
-export const BALL_MAX_SPEED = 1300;
+export const BALL_ROLL = 0.3;
+export const BALL_MAX_SPEED = 950;
 
 /** Joueur : un « bâton » arrondi des pieds à la tête. */
-export const PLAYER_R = 22;
+export const PLAYER_R = 25;
 /** Hauteur du joueur debout. */
 export const PLAYER_H = 140;
-export const RUN_SPEED = 310;
-export const JUMP_SPEED = 660;
+export const RUN_SPEED = 320;
+/** Saut d'environ 250 px : la tête monte bien au-dessus de la barre. */
+export const JUMP_SPEED = 980;
 
 /** Durée d'un match (secondes de jeu). */
 export const MATCH_TIME = 90;
@@ -35,5 +40,3 @@ export const MATCH_TIME = 90;
 export const GOAL_PAUSE = 2.2;
 /** Le ballon est tenu en l'air avant d'être lâché. */
 export const KICKOFF_PAUSE = 1.1;
-/** Charge de la jauge de super tir à chaque frappe réussie. */
-export const POWER_PER_TOUCH = 0.17;

@@ -1,5 +1,5 @@
 /* Tableau des scores façon stade : portraits encadrés de la couleur du joueur, nom sur bandeau,
-   jauge de super tir, score au centre et chrono à affichage lumineux. */
+   score au centre et chrono à affichage lumineux. */
 import type { Character } from '../assets/characters';
 import { W } from '../engine/constants';
 import type { Match } from '../engine/types';
@@ -46,7 +46,7 @@ function block(
   ctx.fillRect(x, y, w, h);
 }
 
-function side(ctx: CanvasRenderingContext2D, m: Match, char: Character, s: 0 | 1, view: View): void {
+function side(ctx: CanvasRenderingContext2D, _m: Match, char: Character, s: 0 | 1, view: View): void {
   const size = 58;
   const left = s === 0;
   const x = left ? view.x0 + 16 : view.x1 - 16 - size;
@@ -66,21 +66,6 @@ function side(ctx: CanvasRenderingContext2D, m: Match, char: Character, s: 0 | 1
   block(ctx, bx, 14, bw, 24, char.color);
   ctx.textAlign = left ? 'left' : 'right';
   text(ctx, char.name, left ? bx + 8 : bx + bw - 8, 33, 14);
-
-  // jauge de super tir
-  const p = m.players[s];
-  const full = p.power >= 1;
-  const flash = full && Math.floor(performance.now() / 140) % 2 === 0;
-  block(ctx, bx, 48, bw, 14, '#101530');
-  const fill = (bw - 4) * p.power;
-  const grad = ctx.createLinearGradient(bx, 0, bx + bw, 0);
-  grad.addColorStop(left ? 0 : 1, '#ff2e88');
-  grad.addColorStop(0.5, '#ff7a00');
-  grad.addColorStop(left ? 1 : 0, '#ffe600');
-  ctx.fillStyle = flash ? '#ffffff' : grad;
-  ctx.fillRect(left ? bx + 2 : bx + bw - 2 - fill, 50, fill, 10);
-  ctx.textAlign = left ? 'left' : 'right';
-  if (full) text(ctx, 'SUPER TIR !', left ? bx : bx + bw, 80, 10, flash ? '#ffe600' : '#ff2e88');
 }
 
 export function drawHud(ctx: CanvasRenderingContext2D, m: Match, info: HudInfo, view: View): void {

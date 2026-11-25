@@ -7,7 +7,7 @@ import {
   BAR_H,
   GOAL_TOP,
   GOAL_W,
-  GRAVITY,
+  BALL_GRAVITY,
   GROUND,
   W,
 } from './constants';
@@ -20,10 +20,10 @@ export const BARS = [
 ] as const;
 
 export function newBall(x: number, y: number): Ball {
-  return { x, y, vx: 0, vy: 0, spin: 0, fire: 0, fireBy: null };
+  return { x, y, vx: 0, vy: 0, spin: 0 };
 }
 
-/** Limite la vitesse du ballon (un super tir reste rattrapable). */
+/** Limite la vitesse du ballon (il reste rattrapable). */
 export function capSpeed(b: Ball): void {
   const speed = Math.hypot(b.vx, b.vy);
   if (speed > BALL_MAX_SPEED) {
@@ -55,20 +55,17 @@ function bounceOnRect(b: Ball, r: { x0: number; x1: number; y0: number; y1: numb
 
 /** Avance le ballon de `dt` secondes. */
 export function stepBall(b: Ball, dt: number, events: GameEvent[]): void {
-  // un super tir file presque droit
-  b.vy += GRAVITY * (b.fire > 0 ? 0.2 : 1) * dt;
+  b.vy += BALL_GRAVITY * dt;
   b.vx *= 1 - 0.15 * dt; // freinage de l'air
   b.x += b.vx * dt;
   b.y += b.vy * dt;
   b.spin += (b.vx / BALL_R) * dt;
-  if (b.fire > 0) b.fire = Math.max(0, b.fire - dt);
 
   if (b.y > GROUND - BALL_R) {
     b.y = GROUND - BALL_R;
     if (b.vy > 120) events.push({ type: 'bounce', x: b.x, y: b.y });
     b.vy = b.vy > 60 ? -b.vy * BALL_BOUNCE : 0;
     b.vx *= Math.pow(BALL_ROLL, dt * (b.vy === 0 ? 1 : 6));
-    b.fire = 0;
   }
   if (b.y < BALL_R) {
     b.y = BALL_R;
@@ -77,12 +74,10 @@ export function stepBall(b: Ball, dt: number, events: GameEvent[]): void {
   if (b.x < BALL_R || b.x > W - BALL_R) {
     b.x = b.x < BALL_R ? BALL_R : W - BALL_R;
     b.vx = -b.vx * BALL_BOUNCE;
-    b.fire = 0;
   }
   for (const bar of BARS) {
     if (bounceOnRect(b, bar)) {
       if (Math.abs(b.vx) + Math.abs(b.vy) > 150) events.push({ type: 'post', x: b.x, y: b.y });
-      b.fire = 0;
     }
   }
 }
@@ -93,4 +88,24 @@ export function goalLine(b: Ball): 0 | 1 | null {
   if (b.x + BALL_R < GOAL_W) return 0;
   if (b.x - BALL_R > W - GOAL_W) return 1;
   return null;
+}
+
+/**
+ * Ballon dans les filets après un but : le filet l'amortit et le garde dans la cage (sinon il ressort
+ * aussitôt et on ne voit pas le but). `side` : cage où il est entré (0 = gauche).
+ */
+export function catchInNet(b: Ball, side: 0 | 1, dt: number): void {
+  const inner = side === 0 ? BALL_R : W - GOAL_W + BALL_R;
+  const outer = side === 0 ? GOAL_W - BALL_R : W - BALL_R;
+  if (b.x < inner || b.x > outer) {
+    b.x = Math.min(Math.max(b.x, inner), outer);
+    b.vx *= -0.15;
+  }
+  // le filet freine fort
+  b.vx *= Math.pow(0.04, dt);
+  if (b.y < GOAL_TOP + BALL_R) {
+    b.y = GOAL_TOP + BALL_R;
+    b.vy = Math.abs(b.vy) * 0.2;
+  }
+  if (b.y >= GROUND - BALL_R - 1) b.vy *= 0.4;
 }

@@ -75,8 +75,8 @@ body {
   gap: 18px;
 }
 .ball {
-  width: 72px;
-  height: 72px;
+  width: clamp(44px, 12vh, 72px);
+  height: clamp(44px, 12vh, 72px);
   flex: none;
   background: url('../public/icon.svg') center / 140% no-repeat;
   border-radius: 50%;
@@ -91,7 +91,7 @@ body {
 }
 .title {
   margin: 0;
-  font-size: clamp(30px, 7vw, 68px);
+  font-size: clamp(26px, min(7vw, 11vh), 68px);
   line-height: 1.05;
   color: var(--yellow);
   text-align: left;
@@ -169,6 +169,7 @@ h2.pick.p2 {
 }
 
 .btn {
+  border-radius: 10px;
   font-family: var(--font);
   font-size: 14px;
   padding: 14px 20px;
@@ -179,8 +180,8 @@ h2.pick.p2 {
   cursor: pointer;
 }
 .btn.big {
-  font-size: 18px;
-  padding: 18px 26px;
+  font-size: clamp(13px, 3.2vh, 18px);
+  padding: clamp(12px, 3vh, 18px) 26px;
 }
 .btn.pink {
   background: var(--pink);
@@ -234,9 +235,10 @@ h2.pick.p2 {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  gap: 12px;
-  width: min(800px, 100%);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+  /* deux rangées de sept : la grille tient dans la hauteur de l'écran, sans défiler */
+  width: min(820px, 100%, calc((100dvh - 190px) * 2.6));
 }
 .card {
   font-family: var(--font);
@@ -270,47 +272,26 @@ h2.pick.p2 {
   opacity: 0.6;
 }
 
-/* ---------- boutons de la partie ---------- */
-#pauseBtn,
-#fsBtn {
+/* ---------- bouton pause ---------- */
+#pauseBtn {
   position: fixed;
   z-index: 4;
-  font-family: var(--font);
-  color: #000;
-  background: var(--yellow);
-  border: 3px solid #000;
-  box-shadow: 3px 3px 0 #000;
-  cursor: pointer;
-}
-#pauseBtn {
   display: none;
   left: 50%;
   bottom: max(8px, env(safe-area-inset-bottom));
   transform: translateX(-50%);
+  font-family: var(--font);
   font-size: 10px;
   padding: 8px 12px;
+  color: #000;
+  background: var(--yellow);
+  border: 3px solid #000;
+  border-radius: 8px;
+  box-shadow: 3px 3px 0 #000;
+  cursor: pointer;
 }
 body.playing #pauseBtn {
   display: block;
-}
-#fsBtn {
-  top: max(8px, env(safe-area-inset-top));
-  right: max(8px, env(safe-area-inset-right));
-  z-index: 6;
-  width: 40px;
-  height: 40px;
-  font-size: 20px;
-  line-height: 1;
-  padding: 0;
-}
-body.playing #fsBtn {
-  top: auto;
-  bottom: max(8px, env(safe-area-inset-bottom));
-  right: auto;
-  left: calc(50% + 40px);
-  width: 34px;
-  height: 34px;
-  font-size: 16px;
 }
 
 /* ---------- commandes tactiles (src/input/touch.ts) ---------- */
@@ -327,94 +308,93 @@ body.playing #fsBtn {
 body.touch.playing #touch {
   display: block;
 }
-#stick {
+/* glissière gauche-droite */
+#slider {
   position: absolute;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08));
-  border: 4px solid rgba(0, 0, 0, 0.55);
-  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 4px solid rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.45);
   pointer-events: none;
 }
-#stick.on {
+#slider::before,
+#slider::after {
+  position: absolute;
+  font-size: 22px;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 2px 2px 0 #000;
+}
+#slider::before {
+  content: '◀';
+  left: 12px;
+}
+#slider::after {
+  content: '▶';
+  right: 12px;
+}
+#slider.on {
   box-shadow: inset 0 0 0 3px var(--yellow);
 }
 #knob {
+  z-index: 1;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #ffffff, #d9d9d9 45%, #8a8a8a 75%);
   border: 4px solid #000;
-  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.45);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.45);
 }
-.btn[data-b] {
+.tbtn {
   position: absolute;
-  padding: 0;
   border-radius: 50%;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  line-height: 1;
-  color: #fff;
-  text-shadow: 2px 2px 0 #000;
+  color: #000;
+  text-shadow: 1px 1px 0 #fff;
   border: 4px solid #000;
   box-shadow:
     0 5px 0 rgba(0, 0, 0, 0.5),
-    inset 0 -6px 8px rgba(0, 0, 0, 0.3),
-    inset 0 5px 6px rgba(255, 255, 255, 0.45);
-  opacity: 0.85;
+    inset 0 -6px 8px rgba(0, 0, 0, 0.25),
+    inset 0 5px 6px rgba(255, 255, 255, 0.5);
+  opacity: 0.88;
   transition: transform 0.04s;
 }
-.btn[data-b] small {
-  font-size: 0.42em;
-  margin-top: 0.35em;
+.tbtn.jump {
+  background: radial-gradient(circle at 35% 30%, #d0ff9a, var(--lime) 65%);
 }
-.btn.p {
-  background: radial-gradient(circle at 35% 30%, #fff38a, var(--yellow) 65%);
-  color: #000;
-  text-shadow: 1px 1px 0 #fff;
+.tbtn.kick {
+  background: radial-gradient(circle at 35% 30%, #a0f4ff, var(--cyan) 65%);
 }
-.btn.p.h {
+.tbtn.punch {
   background: radial-gradient(circle at 35% 30%, #ffa0c8, var(--pink) 65%);
   color: #fff;
   text-shadow: 2px 2px 0 #000;
 }
-.btn.k {
-  background: radial-gradient(circle at 35% 30%, #a0f4ff, var(--cyan) 65%);
-  color: #000;
-  text-shadow: 1px 1px 0 #fff;
-}
-.btn.k.h {
-  background: radial-gradient(circle at 35% 30%, #d0ff9a, var(--lime) 65%);
-  color: #000;
-  text-shadow: 1px 1px 0 #fff;
-}
-.btn.s small {
-  font-size: 0.32em;
-}
-.btn.s {
-  background: radial-gradient(circle at 35% 30%, #c9c9c9, #6c6c7a 70%);
-  opacity: 0.45;
-}
-.btn.s.ready {
-  background: radial-gradient(circle at 35% 30%, #ffd27a, #ff6b00 65%);
-  opacity: 1;
-  animation: glow 0.35s ease-in-out infinite alternate;
-}
-@keyframes glow {
-  to {
-    box-shadow:
-      0 0 18px 6px var(--yellow),
-      0 5px 0 rgba(0, 0, 0, 0.5);
-  }
-}
-.btn[data-b].on {
+.tbtn.on {
   transform: scale(0.9) translateY(3px);
   opacity: 1;
   box-shadow:
     0 1px 0 rgba(0, 0, 0, 0.5),
     0 0 20px #fff;
+}
+
+/* ---------- message bref ---------- */
+.toast {
+  position: fixed;
+  z-index: 20;
+  top: max(12px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 16px;
+  font-size: 10px;
+  line-height: 1.6;
+  color: #fff;
+  background: var(--pink);
+  border: 3px solid #000;
+  border-radius: 8px;
+  box-shadow: 4px 4px 0 #000;
 }
 
 #rotate {
@@ -433,5 +413,83 @@ body.touch.playing #touch {
     line-height: 2;
     text-align: center;
     text-shadow: 3px 3px 0 #000;
+  }
+}
+
+/* ---------- menu principal : niveau de l'ordinateur ---------- */
+.level {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  font-size: 9px;
+  background: rgba(11, 16, 48, 0.85);
+  border: 3px solid #000;
+  border-radius: 10px;
+  box-shadow: 4px 4px 0 #000;
+}
+.chips {
+  display: flex;
+  gap: 6px;
+}
+.chip {
+  font-family: var(--font);
+  font-size: 9px;
+  padding: 8px 10px;
+  color: #fff;
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.chip.on {
+  color: #000;
+  background: var(--yellow);
+  border-color: #000;
+}
+
+/* ---------- réseau ---------- */
+.name {
+  font-family: var(--font);
+  font-size: 12px;
+  width: 190px;
+  padding: 12px;
+  text-transform: uppercase;
+  border: 4px solid #000;
+  border-radius: 8px;
+  box-shadow: 4px 4px 0 #000;
+}
+.games {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+}
+.spinner {
+  width: 48px;
+  height: 48px;
+  background: url('../public/icon.svg') center / 140% no-repeat;
+  border: 4px solid #000;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* écrans bas (téléphone à l'horizontale) : tout tient sans défiler */
+@media (max-height: 500px) {
+  #ui .screen {
+    gap: 10px;
+  }
+  h2.pick {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+  .card {
+    font-size: 7px;
+    border-width: 3px;
+    gap: 3px;
+  }
+  .grid {
+    gap: 7px;
   }
 }

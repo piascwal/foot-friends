@@ -1,32 +1,39 @@
 # Foot Friends
 
-Jeu de foot en un contre un, en 2D pixel art : deux cages, un ballon, et les personnages de
-[Fighting Friends](https://github.com/piascwal/fighting-friends). On marque en tirant, en reprenant de la
-tête ou de volée, et on se débarrasse de l'adversaire à coups de poing. Les frappes réussies remplissent la
-jauge du **super tir** : un ballon de feu qui renverse le joueur qu'il percute.
+Jeu de foot en un contre un, en 2D pixel art : deux cages, un gros ballon, et les personnages de
+[Fighting Friends](https://github.com/piascwal/fighting-friends). On défend sa cage et on marque de la tête,
+du pied ou d'une volée ; un coup de poing sonne l'adversaire un instant.
 
 Jouer : **https://piascwal.github.io/foot-friends/**
 
-- **1 joueur** contre l'ordinateur (facile, normal, difficile) ou **2 joueurs** sur le même clavier.
-- Matchs de 60, 90 ou 120 secondes ; en cas d'égalité, **but en or**.
-- Clavier, manettes et écran tactile (à l'horizontale).
+- **Jouer** : contre l'ordinateur (facile, normal, difficile).
+- **À deux · Wi-Fi** : chacun sur son téléphone, sur le même Wi-Fi (lan-kit, comme Fighting Friends). L'un
+  crée la partie, l'autre la voit dans la liste et la rejoint ; aucune adresse à saisir.
+- Matchs de 90 secondes ; en cas d'égalité, **but en or**. Plein écran automatique sur téléphone.
 
-|                          | Seul           | Joueur 1 (à deux) | Joueur 2 (à deux)     |
-| ------------------------ | -------------- | ----------------- | --------------------- |
-| Courir                   | Q / D ou ← / → | Q / D             | ← / →                 |
-| Sauter (tête)            | Z ou ↑         | Z                 | ↑                     |
-| Poing / POING            | U / I          | F / G             | O / P (4 / 5 du pavé) |
-| Pied / PIED              | J / K          | V / B             | L / M (1 / 2)         |
-| Super tir (jauge pleine) | L ou Espace    | H                 | Ù (3)                 |
-| Pause                    | Échap          |                   |                       |
+|                                | Tactile                 | Clavier        | Manette        |
+| ------------------------------ | ----------------------- | -------------- | -------------- |
+| Courir                         | glissière gauche-droite | Q / D ou ← / → | stick ou croix |
+| Sauter (tête)                  | SAUT                    | Z, ↑ ou Espace | A              |
+| Tir (volée en l'air)           | PIED                    | J ou X         | B ou X         |
+| Coup de poing (smash en l'air) | POING                   | K ou C         | Y ou RB        |
+| Pause                          | II                      | Échap          |                |
 
-- **Tactile** : joystick à gauche (vers le haut pour sauter), boutons en losange à droite comme dans
-  Fighting Friends (poing, POING, pied, PIED) et bouton du super tir, qui s'allume quand la jauge est pleine.
-- **Manettes** : stick ou croix, A/B pied/PIED, X/Y poing/POING, RB super tir.
-- **Plein écran** : bouton ⛶ (automatique sur téléphone au lancement d'une partie) ; sur iPhone, « Ajouter à
-  l'écran d'accueil » ouvre le jeu en plein écran. Le stade remplit tout l'écran, quelle que soit sa forme.
+## Le jeu en réseau
 
-Les coups puissants (POING, PIED) sont plus lents à armer mais partent plus fort et sonnent plus longtemps.
+L'appareil qui crée la partie (l'hôte) fait tourner le match ; l'autre (l'invité) lui envoie ses
+commandes et affiche l'état reçu à chaque image. Sur un même Wi-Fi, le délai est imperceptible et les deux
+écrans montrent exactement le même match. L'hôte décide de la suite en fin de match (rejouer, changer de
+joueur). Pour tester sans deux appareils : deux onglets du même navigateur sur l'adresse du jeu suivie de
+`?lan=test`.
+
+## Réglages du jeu
+
+Ce qui rend ce genre de jeu agréable, et comment c'est réglé (`src/engine/constants.ts`, `strikes.ts`) :
+gros ballon qui flotte (gravité plus faible que celle des joueurs), sauts hauts et vifs, tirs en cloche
+plutôt qu'en flèche, têtes qui renvoient sans faire un tir, cage à peine plus haute qu'un joueur, coup
+d'envoi au centre sans que personne ne bouge avant le sifflet. Un test vérifie que deux ordinateurs de
+niveau normal marquent moins de 10 buts par match (environ 5 en moyenne).
 
 ## Les sprites viennent de la banque
 
@@ -36,8 +43,8 @@ Les images des personnages ne sont **pas** dans ce dépôt : elles viennent de l
 - `sprites.json` fixe la version : `v2` = la plus récente des `v2.x`, `v2.4` = cette version exacte.
 - `npm run sprites` télécharge cette version de la banque et lance son script de copie : seules les poses
   demandées par le jeu sont copiées dans `public/assets/characters/` (non versionné).
-- Les poses demandées sont dans `src/data/poses.ts` (garde, portrait, course, saut, pied et poing légers et puissants,
-  volée, smash, sonné, victoire). Le jeu les publie dans la banque :
+- Les poses demandées sont dans `src/data/poses.ts` (garde, portrait, course, saut, tir, coup de poing, volée, smash,
+  sonné, victoire). Le jeu les publie dans la banque :
   `npm run needs -- ../sprite-bank/games/foot-friends.json`. L'atelier de la banque montre alors, pour chaque
   personnage, ce qui manque à Foot Friends.
 - Une pose absente est remplacée par sa pose de repli (`fb`) ; seule la garde (`idle`) est obligatoire.
@@ -80,10 +87,12 @@ src/data      poses demandées à la banque (cadrage, replis), besoins publiés
 src/engine    le match, sans navigateur : physique du ballon et des joueurs, frappes, règles, ordinateur
 src/assets    lecture des personnages copiés de la banque
 src/render    dessin : stade, cages, sprites, effets, tableau des scores
-src/input     clavier, manettes, boutons tactiles
+src/input     clavier, manettes, commandes tactiles
+src/net       jeu en réseau : mise en relation (lan-kit), liaison, protocole
 src/audio     bruitages synthétisés
-src/ui        écrans : titre, choix des personnages, pause, fin
-tests/        règles du match, frappes, ordinateur, besoins en sprites
+src/ui        écrans : menu, choix des joueurs, réseau, pause, fin
+src/main.ts   boucle de jeu (solo, hôte, invité) ; src/lan-game.ts : déroulé d'une partie en réseau
+tests/        règles du match, frappes, ordinateur, rythme des buts, protocole, besoins en sprites
 ```
 
 Une couche n'importe que celles qui la précèdent (vérifié par `npm run lint`) ; le moteur ne touche pas au

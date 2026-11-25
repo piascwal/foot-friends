@@ -21,10 +21,13 @@ describe('match', () => {
   it('un but dans la cage de gauche compte pour le joueur de droite, puis nouveau coup d’envoi', () => {
     const m = playing(newMatch());
     intoLeftGoal(m);
+    m.ball.vx = -500;
     const events = run(m, DT * 2);
     expect(m.score).toEqual([0, 1]);
     expect(events).toContainEqual({ type: 'goal', side: 1 });
-    run(m, 2.3);
+    run(m, 2);
+    expect(m.ball.x).toBeLessThan(GOAL_W);
+    run(m, 0.3);
     expect(m.phase).toBe('kickoff');
     expect(m.kickoffTo).toBe(0);
   });
@@ -67,5 +70,35 @@ describe('match', () => {
       expect(m.ball.y).toBeLessThanOrEqual(GROUND);
     }
     expect(m.phase).toBe('end');
+  });
+});
+
+describe('rythme du jeu', () => {
+  it('personne ne bouge avant le coup de sifflet', () => {
+    const m = newMatch();
+    const x = m.players[0].x;
+    run(m, 0.8, () => [{ ...NO_INPUT, right: true, jump: true }, NO_INPUT]);
+    expect(m.players[0].x).toBe(x);
+    expect(m.players[0].y).toBe(GROUND);
+  });
+
+  it('après un but, le ballon reste dans les filets', () => {
+    const m = playing(newMatch());
+    Object.assign(m.ball, { x: GOAL_W / 2, y: GROUND - BALL_R, vx: -900, vy: -300 });
+    run(m, 2);
+    expect(m.phase).toBe('goal');
+    expect(m.ball.x).toBeLessThan(GOAL_W);
+  });
+
+  it('deux ordinateurs de niveau normal marquent peu : moins de 10 buts par match', () => {
+    let total = 0;
+    for (const seed of [1, 2, 3]) {
+      const m = newMatch(90);
+      const brains = [newBrain('normal', seeded(seed)), newBrain('normal', seeded(seed + 50))] as const;
+      for (let t = 0; t < 200 && m.phase !== 'end'; t += DT)
+        run(m, DT, (mm) => [cpuInput(mm, 0, brains[0], DT), cpuInput(mm, 1, brains[1], DT)]);
+      total += m.score[0] + m.score[1];
+    }
+    expect(total / 3).toBeLessThan(10);
   });
 });

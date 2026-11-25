@@ -22,13 +22,3 @@ export async function enterFullscreen(): Promise<void> {
     // refusé par le navigateur : le jeu reste dans la page
   }
 }
-
-export async function toggleFullscreen(): Promise<void> {
-  if (!isFullscreen()) return enterFullscreen();
-  try {
-    if (doc.exitFullscreen) await doc.exitFullscreen();
-    else await doc.webkitExitFullscreen?.();
-  } catch {
-    // déjà sorti
-  }
-}

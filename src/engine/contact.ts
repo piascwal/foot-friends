@@ -1,15 +1,15 @@
 /* Le ballon contre le corps d'un joueur : il rebondit sur lui (tête, torse, jambes), en prenant une
-   partie de sa vitesse. Un super tir renverse l'adversaire qu'il percute et continue sa course. */
-import { capSpeed } from './ball';
+   partie de sa vitesse. */
 import { BALL_BOUNCE, BALL_R, GROUND, PLAYER_R } from './constants';
 import { closestOnPlayer } from './geometry';
-import { stunPlayer } from './strikes';
 import type { Ball, GameEvent, Player } from './types';
 
 /** Rebond du ballon sur un joueur. */
 const BODY_BOUNCE = 0.55;
+/** Vitesse maximale d'un ballon renvoyé par le corps ou la tête (les tirs vont plus vite). */
+const BODY_MAX_SPEED = 620;
 
-export function ballOnPlayer(b: Ball, p: Player, events: GameEvent[]): void {
+export function ballOnPlayer(b: Ball, p: Player, _events: GameEvent[]): void {
   const c = closestOnPlayer(p, b.x, b.y);
   const dx = b.x - c.x;
   const dy = b.y - c.y;
@@ -17,31 +17,24 @@ export function ballOnPlayer(b: Ball, p: Player, events: GameEvent[]): void {
   const min = PLAYER_R + BALL_R;
   if (d >= min) return;
 
-  if (b.fire > 0 && b.fireBy !== null && b.fireBy !== p.side) {
-    // super tir adverse : le joueur est renversé, le ballon passe
-    if (p.stun <= 0) {
-      stunPlayer(p, 1.3, Math.sign(b.vx) * 380, events);
-      b.vx *= 0.85;
-    }
-    return;
-  }
-
   const nx = d > 0 ? dx / d : p.facing;
   const ny = d > 0 ? dy / d : 0;
   b.x = c.x + nx * min;
   b.y = c.y + ny * min;
-  const rvx = b.vx - p.vx;
-  const rvy = b.vy - p.vy;
+  // le corps ne transmet qu'une partie de son élan (un saut lancé ne doit pas faire un tir)
+  const rvx = b.vx - p.vx * 0.6;
+  const rvy = b.vy - p.vy * 0.35;
   const vn = rvx * nx + rvy * ny;
   if (vn < 0) {
     b.vx -= (1 + BODY_BOUNCE) * vn * nx;
     b.vy -= (1 + BODY_BOUNCE) * vn * ny;
-    // tête : le joueur qui saute renvoie le ballon plus haut et vers l'avant
-    if (ny < -0.5 && p.vy < 0) {
-      b.vy += p.vy * 0.4;
-      b.vx += p.facing * 90;
+    // tête : elle renvoie le ballon vers l'avant, un peu plus haut si le joueur saute
+    if (ny < -0.5) b.vx += p.facing * (p.vy < 0 ? 120 : 60);
+    const speed = Math.hypot(b.vx, b.vy);
+    if (speed > BODY_MAX_SPEED) {
+      b.vx *= BODY_MAX_SPEED / speed;
+      b.vy *= BODY_MAX_SPEED / speed;
     }
-    capSpeed(b);
   }
   // coincé entre le joueur et la pelouse : le ballon ne s'enfonce pas, il rebondit
   if (b.y > GROUND - BALL_R) {

@@ -1,5 +1,5 @@
 /* Le match : coup d'envoi, jeu, buts, temps, but en or, fin. */
-import { goalLine, newBall, stepBall } from './ball';
+import { catchInNet, goalLine, newBall, stepBall } from './ball';
 import { GOAL_PAUSE, KICKOFF_PAUSE, MATCH_TIME, W } from './constants';
 import { ballOnPlayer } from './contact';
 import { movePlayer, newPlayer, separatePlayers, steer } from './player';
@@ -26,10 +26,7 @@ export function newMatch(time = MATCH_TIME): Match {
 
 /** Remet joueurs et ballon en place pour le coup d'envoi. */
 function resetKickoff(m: Match): void {
-  const power = m.players.map((p) => p.power);
   m.players = [newPlayer(0), newPlayer(1)];
-  m.players[0].power = power[0]!;
-  m.players[1].power = power[1]!;
   m.ball = newBall(W / 2, DROP_Y);
   m.phase = 'kickoff';
   m.phaseT = 0;
@@ -70,7 +67,8 @@ export function stepMatch(m: Match, inputs: readonly [Input, Input], dt: number)
   m.phaseT += dt;
   switch (m.phase) {
     case 'kickoff':
-      simulate(m, inputs, dt, false);
+      // personne ne bouge avant le coup de sifflet
+      simulate(m, inputs, dt, true);
       // le ballon reste tenu en l'air jusqu'au coup de sifflet
       m.ball.x = W / 2;
       m.ball.y = DROP_Y;
@@ -107,6 +105,8 @@ export function stepMatch(m: Match, inputs: readonly [Input, Input], dt: number)
     case 'goal':
       simulate(m, inputs, dt, true);
       stepBall(m.ball, dt, []);
+      // le ballon reste dans les filets de la cage où il est entré
+      catchInNet(m.ball, m.kickoffTo, dt);
       if (m.phaseT >= GOAL_PAUSE) {
         if (m.golden || m.time === 0) finish(m);
         else resetKickoff(m);

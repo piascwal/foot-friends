@@ -10,9 +10,7 @@ export type PoseKey =
   | 'walk2'
   | 'jump'
   | 'punch_light'
-  | 'punch_heavy'
   | 'kick_light'
-  | 'kick_heavy'
   | 'jump_punch'
   | 'jump_kick'
   | 'hit'
@@ -35,15 +33,7 @@ export const POSES: readonly PoseSpec[] = [
   { key: 'walk2', use: 'course', h: 1, ax: 0.5, fb: ['walk1', 'idle'] },
   { key: 'jump', use: 'saut, tête', h: 0.9, ax: 0.5, fb: ['idle'] },
   { key: 'punch_light', use: 'coup de poing au sol', h: 1, ax: 0.36, fb: ['idle'] },
-  { key: 'punch_heavy', use: 'coup de poing puissant', h: 0.97, ax: 0.34, fb: ['punch_light', 'idle'] },
   { key: 'kick_light', use: 'tir au sol', h: 1, ax: 0.34, fb: ['punch_light', 'idle'] },
-  {
-    key: 'kick_heavy',
-    use: 'frappe puissante, super tir',
-    h: 1.02,
-    ax: 0.36,
-    fb: ['kick_light', 'punch_light', 'idle'],
-  },
   { key: 'jump_punch', use: 'smash en l’air', h: 0.86, ax: 0.42, fb: ['jump_kick', 'jump', 'idle'] },
   { key: 'jump_kick', use: 'volée en l’air', h: 0.86, ax: 0.4, fb: ['jump_punch', 'jump', 'idle'] },
   { key: 'hit', use: 'sonné', h: 0.98, ax: 0.5, fb: ['idle'] },

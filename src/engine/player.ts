@@ -27,7 +27,6 @@ export function newPlayer(side: Side): Player {
     onGround: true,
     strike: null,
     stun: 0,
-    power: 0,
     stride: 0,
     prev: NO_INPUT,
   };

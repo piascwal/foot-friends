@@ -8,13 +8,10 @@ export interface Input {
   left: boolean;
   right: boolean;
   jump: boolean;
-  /** Tir (pied léger) et frappe puissante (pied lourd). */
+  /** Tir du pied. */
   kick: boolean;
-  kickHeavy: boolean;
-  /** Coup de poing léger et puissant. */
+  /** Coup de poing : frappe le ballon et sonne l'adversaire. */
   punch: boolean;
-  punchHeavy: boolean;
-  super: boolean;
 }
 
 export const NO_INPUT: Input = {
@@ -22,16 +19,10 @@ export const NO_INPUT: Input = {
   right: false,
   jump: false,
   kick: false,
-  kickHeavy: false,
   punch: false,
-  punchHeavy: false,
-  super: false,
 };
 
-export type StrikeKind = 'kick' | 'kickHeavy' | 'punch' | 'punchHeavy' | 'super';
-
-/** Les frappes qui se déclenchent sur l'appui d'une touche, de la plus forte à la plus faible. */
-export const STRIKE_KINDS: readonly StrikeKind[] = ['super', 'kickHeavy', 'punchHeavy', 'kick', 'punch'];
+export type StrikeKind = 'kick' | 'punch';
 
 export interface Strike {
   kind: StrikeKind;
@@ -56,8 +47,6 @@ export interface Player {
   strike: Strike | null;
   /** Temps restant sonné (ne peut plus bouger ni frapper). */
   stun: number;
-  /** Jauge de super tir, de 0 à 1. */
-  power: number;
   /** Distance parcourue en courant (anime la course). */
   stride: number;
   /** Commandes de l'image précédente (pour ne réagir qu'à l'appui). */
@@ -71,9 +60,6 @@ export interface Ball {
   vy: number;
   /** Rotation affichée (radians). */
   spin: number;
-  /** Super tir en cours : temps restant et tireur. */
-  fire: number;
-  fireBy: Side | null;
 }
 
 export type Phase = 'kickoff' | 'play' | 'goal' | 'end';
